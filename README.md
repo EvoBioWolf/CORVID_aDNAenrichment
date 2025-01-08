@@ -59,4 +59,5 @@ Pipeline to process and compare the reads from libraries enriched by myBaits and
 
 All scripts are deposited in folder [Analyses](./Analyses)
 
+Pipeline written by chyiyin Gwee [chyiyingwee@gmail.com]
 
