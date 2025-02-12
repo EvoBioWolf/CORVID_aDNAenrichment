@@ -32,14 +32,18 @@ abline(lm(y ~ x), col = "blue")
 abline(0,1,col = "black",lty=2)
 mtext("A", side = 3, adj = 0, line = 1.5, cex = 1.2, font = 2)
 
-#2
-x=twistdat$complexity
-y=mybaitsdat$complexity
-plot(x=twistdat$complexity, y=mybaitsdat$complexity,main = "Complexity\n (obs vs exp coverage)",
-     xlab = "Twist", ylab = "myBaits", pch = 19, frame = FALSE, xlim=c(0,1), ylim=c(0,1), cex.lab = 1.4, cex.axis=1.3)
+#2 E
+x=twistdat$Mean.cov.of.target.104k.SNPsite
+y=mybaitsdat$Mean.cov.of.target.104k.SNPsite
+plot(x=twistdat$Mean.cov.of.target.104k.SNPsite, y=mybaitsdat$Mean.cov.of.target.104k.SNPsite,main = "Mean coverage of\n 104K SNP sites",
+     xlab = "Twist", ylab = "myBaits", pch = 19, frame = FALSE, xlim=c(0,50), ylim=c(0,50), cex.lab = 1.4, cex.axis=1.3)
 abline(lm(y ~ x), col = "blue")
 abline(0,1,col = "black",lty=2)
 mtext("E", side = 3, adj = 0, line = 1.5, cex = 1.2, font = 2)
+points_to_label <- c(7,8,11)
+text(twistdat$Mean.cov.of.target.104k.SNPsite[points_to_label],mybaitsdat$Mean.cov.of.target.104k.SNPsite[points_to_label], 
+     labels = twistdat$Sample.Name[points_to_label], 
+     pos = 4, cex = 1, col = "red")
 
 #3
 x=twistdat$On.target.alignment.adjusted.to.104K.80bp.panel....
@@ -50,14 +54,18 @@ abline(lm(y ~ x), col = "blue")
 abline(0,1,col = "black",lty=2)
 mtext("B", side = 3, adj = 0, line = 1.5, cex = 1.2, font = 2)
 
-#4
-x=twistdat$MT.to.Nuclear.Ratio
-y=mybaitsdat$MT.to.Nuclear.Ratio
-plot(x=twistdat$MT.to.Nuclear.Ratio, y=mybaitsdat$MT.to.Nuclear.Ratio,main = "MT to Nuclear Ratio\n (coverage)",
-     xlab = "Twist", ylab = "myBaits", pch = 19, frame = FALSE, xlim=c(0,100), ylim=c(0,100), cex.lab = 1.4, cex.axis=1.3)
+#4 F
+x=twistdat$complexity
+y=mybaitsdat$complexity
+plot(x=twistdat$complexity, y=mybaitsdat$complexity,main = "Observed vs expected\n coverage",
+     xlab = "Twist", ylab = "myBaits", pch = 19, frame = FALSE, xlim=c(0,1), ylim=c(0,1), cex.lab = 1.4, cex.axis=1.3)
 abline(lm(y ~ x), col = "blue")
 abline(0,1,col = "black",lty=2)
 mtext("F", side = 3, adj = 0, line = 1.5, cex = 1.2, font = 2)
+text(twistdat$complexity[points_to_label],mybaitsdat$complexity[points_to_label], 
+     labels = twistdat$Sample.Name[points_to_label], 
+     pos = 4, cex = 1, col = "red")
+
 
 #5
 x=twistdat$On.target.alignment.to.original.bait.panel....
@@ -77,11 +85,11 @@ abline(lm(y ~ x), col = "blue")
 abline(0,1,col = "black",lty=2)
 mtext("G", side = 3, adj = 0, line = 1.5, cex = 1.2, font = 2)
 
-#7
-x=twistdat$Mean.cov.of.target.104k.SNPsite
-y=mybaitsdat$Mean.cov.of.target.104k.SNPsite
-plot(x=twistdat$Mean.cov.of.target.104k.SNPsite, y=mybaitsdat$Mean.cov.of.target.104k.SNPsite,main = "Mean coverage of\n 104K SNP sites",
-     xlab = "Twist", ylab = "myBaits", pch = 19, frame = FALSE, xlim=c(0,30), ylim=c(0,30), cex.lab = 1.4, cex.axis=1.3)
+#7 D
+x=twistdat$MT.to.Nuclear.Ratio
+y=mybaitsdat$MT.to.Nuclear.Ratio
+plot(x=twistdat$MT.to.Nuclear.Ratio, y=mybaitsdat$MT.to.Nuclear.Ratio,main = "MT to Nuclear Ratio\n (coverage)",
+     xlab = "Twist", ylab = "myBaits", pch = 19, frame = FALSE, xlim=c(0,100), ylim=c(0,100), cex.lab = 1.4, cex.axis=1.3)
 abline(lm(y ~ x), col = "blue")
 abline(0,1,col = "black",lty=2)
 mtext("D", side = 3, adj = 0, line = 1.5, cex = 1.2, font = 2)
@@ -287,9 +295,9 @@ setwd("/Users/chyiyin/Dropbox/CORVID_baits/Analyses/angsd")
 twistsnp <- read.table(gzfile("twist_104kpanel_hapconsensus_maxmis_q20.haplo.gz"), sep = "\t", header=TRUE) #76303
 mybaitssnp <- read.table(gzfile("mybaits_104kpanel_hapconsensus_maxmis_q20.haplo.gz"), sep = "\t", header=TRUE) #73038
 shotgunsnp <- read.table(gzfile("shotgun_noudg_104kpanel_hapconsensus_maxmis_q20.haplo.gz"), sep = "\t", header=TRUE) #42353
-shotgungeno <- read.table(gzfile("shotgun_noudg_104kpanel_geno_maxmis_q20.geno.gz"), sep = "\t", header=FALSE)
+shotgungeno <- read.table(gzfile("shotgun_noudg_104kpanel_geno_maxmis_q20_dp3.geno.gz"), sep = "\t", header=FALSE) #104K with Ns
 shotgungeno <- shotgungeno[-15]
-# the filter for snpcalling on angsd is -minMapQ 20 -minQ 20
+# the filter for snpcalling on angsd is -minMapQ 20 -minQ 20 and also dp>=3 for geno calling
 
 popbaits <- read.table("popbaits.txt", sep="\t", header=TRUE) 
 popbaits_selected <- popbaits %>% 
@@ -353,26 +361,23 @@ differences <- twistsnp_common != mybaitssnp_common  # This creates a logical ma
 diff_rows <- rowSums(differences, na.rm = TRUE) > 0  # Identify rows with at least one difference
 mismatch_counts <- sort(colSums(differences, na.rm = TRUE), decreasing=TRUE)
 
-# Check againts shotgun SNP
-mismatchresults <- data.frame(Sample=popshotgun_selected$Samples,myBaits_match_shotgun=1,Twist_match_shotgun=2,heterozygosity=3)
+# Check against shotgun geno
+mismatchresults <- data.frame(Sample=popshotgun_selected$Samples,myBaits_match_shotgun=1,Twist_match_shotgun=2,het_geno=3,myBaits_match_shotgun_per=4,Twist_match_shotgun_per=5,different_allele_per=6)
 for (i in 1:length(popshotgun_selected$Samples)) {
   sample_name <- popshotgun_selected$Samples[i] 
   mismatched_rows <- which(differences[,sample_name], arr.ind = TRUE)
   mismatched_row_names <- rownames(differences)[mismatched_rows]
   
   # Check against shotgun
-  check_shotgun <- intersect(mismatched_row_names, rownames(shotgunsnp))
+  check_shotgun <- intersect(mismatched_row_names, rownames(shotgungeno))
   twist2 <- twistsnp_common[check_shotgun,] %>%
     select(sample_name)
   mybaits2 <- mybaitssnp_common[check_shotgun,] %>%
-    select(sample_name)
-  shotgun2 <- shotgunsnp[check_shotgun,] %>%
     select(sample_name)
   geno <- shotgungeno[check_shotgun,] %>%
     select(sample_name)
   twist2 <- tibble::rownames_to_column(twist2, var = "rowname")
   mybaits2 <- tibble::rownames_to_column(mybaits2, var = "rowname")
-  shotgun2 <- tibble::rownames_to_column(shotgun2, var = "rowname")
   geno <- tibble::rownames_to_column(geno, var = "rowname")
   geno2 <- geno %>% separate(sample_name, into =c("allele1","allele2"),sep=1) %>%
     mutate(het=(allele1!=allele2)*1)
@@ -380,23 +385,28 @@ for (i in 1:length(popshotgun_selected$Samples)) {
   
   merged_df <- mybaits2 %>%
     full_join(twist2, by = "rowname") %>%
-    full_join(shotgun2, by = "rowname")
-  colnames(merged_df) <- c("rowname","myBaits","Twist","shotgun")
+    full_join(geno2, by="rowname")
+  colnames(merged_df) <- c("rowname","myBaits","Twist","shotgun_allele1", "shotgun_allele2", "het")
   
-  mybaits_match_shotgun <- sum(merged_df$myBaits == merged_df$shotgun, na.rm=TRUE) 
+  mybaits_match_shotgun <- sum(merged_df$myBaits == merged_df$shotgun_allele1 | merged_df$myBaits == merged_df$shotgun_allele2, na.rm=TRUE) 
   mismatchresults[i,2] <- mybaits_match_shotgun
-  twist_match_shotgun <- sum(merged_df$Twist == merged_df$shotgun, na.rm=TRUE) 
+  twist_match_shotgun <- sum(merged_df$Twist == merged_df$shotgun_allele1 | merged_df$Twist == merged_df$shotgun_allele2, na.rm=TRUE) 
   mismatchresults[i,3] <- twist_match_shotgun
   mismatchresults[i,4] <- het
+  mismatchresults[i,5] <- mybaits_match_shotgun / merged_df%>% drop_na() %>% nrow() * 100
+  twist_match_shotgun <- sum(merged_df$Twist == merged_df$shotgun_allele1 | merged_df$Twist == merged_df$shotgun_allele2, na.rm=TRUE) 
+  mismatchresults[i,6] <- twist_match_shotgun / merged_df%>% drop_na() %>% nrow() * 100
+  mismatchresults[i,7] <- sum(merged_df$shotgun_allele1 != merged_df$myBaits & merged_df$shotgun_allele2 != merged_df$myBaits & merged_df$shotgun_allele1 != merged_df$Twist & merged_df$shotgun_allele2 != merged_df$Twist, na.rm=TRUE) /  merged_df%>% drop_na() %>% nrow() *100
 }
 
-mismatchresults2 <- melt(as.data.table(mismatchresults), id.vars=c(1,4), variable.name="Method", value.name="Matches to shotgun")
-m1 <- ggplot(data=mismatchresults2,aes(x=Sample,y=`Matches to shotgun`, fill=Method)) + 
-  geom_bar(stat="identity",position="dodge",show.legend = FALSE) + 
-  geom_text(aes(label = `Matches to shotgun`),position = position_dodge(width = 0.9), vjust = -0.3, size=3) +
-  geom_text(aes(y = -max(`Matches to shotgun`)*0.05,label = paste("het=",format(heterozygosity,digits=3,scientific=FALSE),"%",sep="")),size=3.5) +
+mismatchresults2 <- melt(as.data.table(mismatchresults), id.vars=c(1,2,3,4), variable.name="Method", value.name="Matches to shotgun (%)")
+m1 <- ggplot(data=mismatchresults2,aes(x=Sample,y=`Matches to shotgun (%)`, fill=Method)) + 
+  geom_bar(stat="identity",position="dodge",show.legend = TRUE) + 
+  geom_text(aes(label = format(`Matches to shotgun (%)`,digits=1,scientific=FALSE)),position = position_dodge(width = 0.9), vjust = -0.3, size=3) +
+  geom_text(aes(y = -max(`Matches to shotgun (%)`)*0.05,label = paste("het=",format(het_geno,digits=3,scientific=FALSE),"%",sep="")),size=3.5) +
   theme_bw() +
-  scale_fill_discrete(labels = c("myBaits", "Twist")) +
+  scale_fill_manual(values = c("#F8766D", "#00BFC4", "orange"), name = "Method", labels = c("myBaits", "Twist","No match")) +
+  theme(legend.position="bottom") +
   theme(axis.text.x = element_text(face="bold")) +
   theme(axis.title.x=element_blank(),
         panel.grid.major = element_blank(),
@@ -404,3 +414,999 @@ m1 <- ggplot(data=mismatchresults2,aes(x=Sample,y=`Matches to shotgun`, fill=Met
 
 grid.arrange(p5,arrangeGrob(venn.plot, m1, ncol = 2))
 
+##### pseudohaploid genotype for allele bias #####
+## BRW001 ##
+ac <- shotgungeno %>% select(BRW001) %>%
+  filter(BRW001 == "AC" | BRW001 == "CA") 
+ag <- shotgungeno %>% select(BRW001) %>%
+  filter(BRW001 == "AG" | BRW001 == "GA") 
+at <- shotgungeno %>% select(BRW001) %>%
+  filter(BRW001 == "AT" | BRW001 == "TA")  
+cg <- shotgungeno %>% select(BRW001) %>%
+  filter(BRW001 == "CG" | BRW001 == "GC") 
+ct <- shotgungeno %>% select(BRW001) %>%
+  filter(BRW001 == "CT" | BRW001 == "TC") 
+gt <- shotgungeno %>% select(BRW001) %>%
+  filter(BRW001 == "GT" | BRW001 == "TG")  
+het_brw001 <- rbind(ac,ag,at,cg,ct,gt)
+
+#mybaits
+genotype_counts <- list(
+  AC = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$BRW001 == "A", na.rm = TRUE),
+         C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$BRW001 == "C", na.rm = TRUE)),
+  AG = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$BRW001 == "A", na.rm = TRUE),
+         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$BRW001 == "G", na.rm = TRUE)),
+  AT = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$BRW001 == "A", na.rm = TRUE),
+         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$BRW001 == "T", na.rm = TRUE)),
+  CG = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$BRW001 == "C", na.rm = TRUE),
+         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$BRW001 == "G", na.rm = TRUE)),
+  CT = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$BRW001 == "C", na.rm = TRUE),
+         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$BRW001 == "T", na.rm = TRUE)),
+  GT = c(G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$BRW001 == "G", na.rm = TRUE),
+         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$BRW001 == "T", na.rm = TRUE)))
+chi_square_results <- lapply(genotype_counts, function(counts) {
+  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
+})
+p_values <- sapply(chi_square_results, function(x) x$p.value)
+p_adjusted <- p.adjust(p_values, method = "bonferroni")
+print(p_adjusted)
+ 
+#twist
+genotype_counts <- list(
+  AC = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$BRW001 == "A", na.rm = TRUE),
+         C = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$BRW001 == "C", na.rm = TRUE)),
+  AG = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$BRW001 == "A", na.rm = TRUE),
+         G = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$BRW001 == "G", na.rm = TRUE)),
+  AT = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$BRW001 == "A", na.rm = TRUE),
+         T = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$BRW001 == "T", na.rm = TRUE)),
+  CG = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$BRW001 == "C", na.rm = TRUE),
+         G = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$BRW001 == "G", na.rm = TRUE)),
+  CT = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$BRW001 == "C", na.rm = TRUE),
+         T = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$BRW001 == "T", na.rm = TRUE)),
+  GT = c(G = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$BRW001 == "G", na.rm = TRUE),
+         T = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$BRW001 == "T", na.rm = TRUE)))
+
+chi_square_results <- lapply(genotype_counts, function(counts) {
+  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
+})
+p_values <- sapply(chi_square_results, function(x) x$p.value)
+p_adjusted <- p.adjust(p_values, method = "bonferroni")
+print(genotype_counts)
+print(p_adjusted)
+
+## DVT014 ##
+ac <- shotgungeno %>% select(DVT014) %>%
+  filter(DVT014 == "AC" | DVT014 == "CA") 
+ag <- shotgungeno %>% select(DVT014) %>%
+  filter(DVT014 == "AG" | DVT014 == "GA") 
+at <- shotgungeno %>% select(DVT014) %>%
+  filter(DVT014 == "AT" | DVT014 == "TA")  
+cg <- shotgungeno %>% select(DVT014) %>%
+  filter(DVT014 == "CG" | DVT014 == "GC") 
+ct <- shotgungeno %>% select(DVT014) %>%
+  filter(DVT014 == "CT" | DVT014 == "TC") 
+gt <- shotgungeno %>% select(DVT014) %>%
+  filter(DVT014 == "GT" | DVT014 == "TG")  
+het_dvt014 <- rbind(ac,ag,at,cg,ct,gt)
+
+#mybaits
+genotype_counts <- list(
+  AC = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$DVT014 == "A", na.rm = TRUE),
+         C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$DVT014 == "C", na.rm = TRUE)),
+  AG = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$DVT014 == "A", na.rm = TRUE),
+         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$DVT014 == "G", na.rm = TRUE)),
+  AT = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$DVT014 == "A", na.rm = TRUE),
+         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$DVT014 == "T", na.rm = TRUE)),
+  CG = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$DVT014 == "C", na.rm = TRUE),
+         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$DVT014 == "G", na.rm = TRUE)),
+  CT = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$DVT014 == "C", na.rm = TRUE),
+         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$DVT014 == "T", na.rm = TRUE)),
+  GT = c(G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$DVT014 == "G", na.rm = TRUE),
+         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$DVT014 == "T", na.rm = TRUE)))
+chi_square_results <- lapply(genotype_counts, function(counts) {
+  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
+})
+p_values <- sapply(chi_square_results, function(x) x$p.value)
+p_adjusted <- p.adjust(p_values, method = "bonferroni")
+print(genotype_counts)
+print(p_adjusted)
+
+#twist
+genotype_counts <- list(
+  AC = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$DVT014 == "A", na.rm = TRUE),
+         C = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$DVT014 == "C", na.rm = TRUE)),
+  AG = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$DVT014 == "A", na.rm = TRUE),
+         G = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$DVT014 == "G", na.rm = TRUE)),
+  AT = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$DVT014 == "A", na.rm = TRUE),
+         T = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$DVT014 == "T", na.rm = TRUE)),
+  CG = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$DVT014 == "C", na.rm = TRUE),
+         G = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$DVT014 == "G", na.rm = TRUE)),
+  CT = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$DVT014 == "C", na.rm = TRUE),
+         T = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$DVT014 == "T", na.rm = TRUE)),
+  GT = c(G = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$DVT014 == "G", na.rm = TRUE),
+         T = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$DVT014 == "T", na.rm = TRUE)))
+
+chi_square_results <- lapply(genotype_counts, function(counts) {
+  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
+})
+p_values <- sapply(chi_square_results, function(x) x$p.value)
+p_adjusted <- p.adjust(p_values, method = "bonferroni")
+print(genotype_counts)
+print(p_adjusted)
+
+## NCP002 ##
+ac <- shotgungeno %>% select(NCP002) %>%
+  filter(NCP002 == "AC" | NCP002 == "CA") 
+ag <- shotgungeno %>% select(NCP002) %>%
+  filter(NCP002 == "AG" | NCP002 == "GA") 
+at <- shotgungeno %>% select(NCP002) %>%
+  filter(NCP002 == "AT" | NCP002 == "TA")  
+cg <- shotgungeno %>% select(NCP002) %>%
+  filter(NCP002 == "CG" | NCP002 == "GC") 
+ct <- shotgungeno %>% select(NCP002) %>%
+  filter(NCP002 == "CT" | NCP002 == "TC") 
+gt <- shotgungeno %>% select(NCP002) %>%
+  filter(NCP002 == "GT" | NCP002 == "TG")  
+het_ncp002 <- rbind(ac,ag,at,cg,ct,gt)
+
+#mybaits
+genotype_counts <- list(
+  AC = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$NCP002 == "A", na.rm = TRUE),
+         C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$NCP002 == "C", na.rm = TRUE)),
+  AG = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$NCP002 == "A", na.rm = TRUE),
+         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$NCP002 == "G", na.rm = TRUE)),
+  AT = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$NCP002 == "A", na.rm = TRUE),
+         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$NCP002 == "T", na.rm = TRUE)),
+  CG = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$NCP002 == "C", na.rm = TRUE),
+         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$NCP002 == "G", na.rm = TRUE)),
+  CT = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$NCP002 == "C", na.rm = TRUE),
+         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$NCP002 == "T", na.rm = TRUE)),
+  GT = c(G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$NCP002 == "G", na.rm = TRUE),
+         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$NCP002 == "T", na.rm = TRUE)))
+chi_square_results <- lapply(genotype_counts, function(counts) {
+  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
+})
+p_values <- sapply(chi_square_results, function(x) x$p.value)
+p_adjusted <- p.adjust(p_values, method = "bonferroni")
+print(genotype_counts)
+print(p_adjusted)
+
+#twist
+genotype_counts <- list(
+  AC = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$NCP002 == "A", na.rm = TRUE),
+         C = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$NCP002 == "C", na.rm = TRUE)),
+  AG = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$NCP002 == "A", na.rm = TRUE),
+         G = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$NCP002 == "G", na.rm = TRUE)),
+  AT = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$NCP002 == "A", na.rm = TRUE),
+         T = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$NCP002 == "T", na.rm = TRUE)),
+  CG = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$NCP002 == "C", na.rm = TRUE),
+         G = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$NCP002 == "G", na.rm = TRUE)),
+  CT = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$NCP002 == "C", na.rm = TRUE),
+         T = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$NCP002 == "T", na.rm = TRUE)),
+  GT = c(G = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$NCP002 == "G", na.rm = TRUE),
+         T = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$NCP002 == "T", na.rm = TRUE)))
+
+chi_square_results <- lapply(genotype_counts, function(counts) {
+  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
+})
+p_values <- sapply(chi_square_results, function(x) x$p.value)
+p_adjusted <- p.adjust(p_values, method = "bonferroni")
+print(genotype_counts)
+print(p_adjusted)
+
+## VKP001 ##
+ac <- shotgungeno %>% select(VKP001) %>%
+  filter(VKP001 == "AC" | VKP001 == "CA") 
+ag <- shotgungeno %>% select(VKP001) %>%
+  filter(VKP001 == "AG" | VKP001 == "GA") 
+at <- shotgungeno %>% select(VKP001) %>%
+  filter(VKP001 == "AT" | VKP001 == "TA")  
+cg <- shotgungeno %>% select(VKP001) %>%
+  filter(VKP001 == "CG" | VKP001 == "GC") 
+ct <- shotgungeno %>% select(VKP001) %>%
+  filter(VKP001 == "CT" | VKP001 == "TC") 
+gt <- shotgungeno %>% select(VKP001) %>%
+  filter(VKP001 == "GT" | VKP001 == "TG")  
+het_vkp001 <- rbind(ac,ag,at,cg,ct,gt)
+
+#mybaits
+genotype_counts <- list(
+  AC = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$VKP001 == "A", na.rm = TRUE),
+         C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$VKP001 == "C", na.rm = TRUE)),
+  AG = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$VKP001 == "A", na.rm = TRUE),
+         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$VKP001 == "G", na.rm = TRUE)),
+  AT = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$VKP001 == "A", na.rm = TRUE),
+         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$VKP001 == "T", na.rm = TRUE)),
+  CG = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$VKP001 == "C", na.rm = TRUE),
+         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$VKP001 == "G", na.rm = TRUE)),
+  CT = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$VKP001 == "C", na.rm = TRUE),
+         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$VKP001 == "T", na.rm = TRUE)),
+  GT = c(G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$VKP001 == "G", na.rm = TRUE),
+         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$VKP001 == "T", na.rm = TRUE)))
+chi_square_results <- lapply(genotype_counts, function(counts) {
+  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
+})
+p_values <- sapply(chi_square_results, function(x) x$p.value)
+p_adjusted <- p.adjust(p_values, method = "bonferroni")
+print(genotype_counts)
+print(p_adjusted)
+
+#twist
+genotype_counts <- list(
+  AC = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$VKP001 == "A", na.rm = TRUE),
+         C = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$VKP001 == "C", na.rm = TRUE)),
+  AG = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$VKP001 == "A", na.rm = TRUE),
+         G = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$VKP001 == "G", na.rm = TRUE)),
+  AT = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$VKP001 == "A", na.rm = TRUE),
+         T = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$VKP001 == "T", na.rm = TRUE)),
+  CG = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$VKP001 == "C", na.rm = TRUE),
+         G = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$VKP001 == "G", na.rm = TRUE)),
+  CT = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$VKP001 == "C", na.rm = TRUE),
+         T = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$VKP001 == "T", na.rm = TRUE)),
+  GT = c(G = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$VKP001 == "G", na.rm = TRUE),
+         T = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$VKP001 == "T", na.rm = TRUE)))
+
+chi_square_results <- lapply(genotype_counts, function(counts) {
+  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
+})
+p_values <- sapply(chi_square_results, function(x) x$p.value)
+p_adjusted <- p.adjust(p_values, method = "bonferroni")
+print(genotype_counts)
+print(p_adjusted)
+
+##### Allele depth for allele bias #####
+# Table 1  and Supp figure 3 
+#ind0:BRW001, ind1:DVT014, ind2:NCP002, ind3:VKP001
+mybaitspos <- read.table(gzfile("mybaits_104kpanel_geno_maxmis_q20_dp3.pos.gz"), sep = "\t", header=TRUE)
+twistpos <- read.table(gzfile("twist_104kpanel_geno_maxmis_q20_dp3.pos.gz"), sep = "\t", header=TRUE)
+shotgunpos <- read.table(gzfile("shotgun_noudg_104kpanel_geno_maxmis_q20_dp3.pos.gz"), sep = "\t", header=TRUE)
+mybaitscount <- read.table(gzfile("mybaits_104kpanel_geno_maxmis_q20_dp3.counts.gz"), sep = "\t", header=TRUE)
+twistcount <- read.table(gzfile("twist_104kpanel_geno_maxmis_q20_dp3.counts.gz"), sep = "\t", header=TRUE)
+shotguncount <- read.table(gzfile("shotgun_noudg_104kpanel_geno_maxmis_q20_dp3.counts.gz"), sep = "\t", header=TRUE)
+
+
+mybaitspos <- read.table(gzfile("mybaits_104kpanel_geno_maxmis_q20_dp3.pos.gz"), sep = "\t", header=TRUE)
+twistpos <- read.table(gzfile("twist_104kpanel_geno_maxmis_q20_dp3.pos.gz"), sep = "\t", header=TRUE)
+shotgunpos <- read.table(gzfile("shotgun_noudg_104kpanel_geno_maxmis_q20_dp3.pos.gz"), sep = "\t", header=TRUE)
+mybaitscount <- read.table(gzfile("mybaits_104kpanel_geno_maxmis_q20_dp3.counts.gz"), sep = "\t", header=TRUE)
+twistcount <- read.table(gzfile("twist_104kpanel_geno_maxmis_q20_dp3.counts.gz"), sep = "\t", header=TRUE)
+shotguncount <- read.table(gzfile("shotgun_noudg_104kpanel_geno_maxmis_q20_dp3.counts.gz"), sep = "\t", header=TRUE)
+
+#Sample BRW001
+mybaitsAD <- cbind(mybaitspos, mybaitscount[1:4]) %>%
+  rename(A=4, C=5, G=6, T=7) %>%
+  mutate(totDepth=A+C+G+T)  %>%
+  mutate(scaff = paste(chr, pos, sep = "_")) %>%
+  filter(totDepth >2) %>%
+  rowwise() %>%
+  filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
+  mutate(
+    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+    AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
+    AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
+    CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
+    CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
+    GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+twistAD <- cbind(twistpos, twistcount[1:4]) %>%
+  rename(A=4, C=5, G=6, T=7) %>%
+  mutate(totDepth=A+C+G+T)  %>%
+  mutate(scaff = paste(chr, pos, sep = "_")) %>%
+  filter(totDepth >2) %>%
+  rowwise() %>%
+  filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
+  mutate(
+    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+    AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
+    AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
+    CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
+    CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
+    GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+shotgunAD <- cbind(shotgunpos, shotguncount[1:4]) %>%
+  rename(A=4, C=5, G=6, T=7) %>%
+  mutate(totDepth=A+C+G+T)  %>%
+  mutate(scaff = paste(chr, pos, sep = "_")) %>%
+  filter(totDepth >2) %>%
+  rowwise() %>%
+  filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
+  mutate(
+    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+    AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
+    AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
+    CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
+    CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
+    GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+common_rows <- Reduce(intersect, list(rownames(het_brw001), mybaitsAD$scaff, twistAD$scaff, shotgunAD$scaff)) #10407
+mybaitsAD_filtered <- mybaitsAD[mybaitsAD$scaff %in% common_rows, ]
+twistAD_filtered <- twistAD[twistAD$scaff %in% common_rows, ]
+shotgunAD_filtered <- shotgunAD[shotgunAD$scaff %in% common_rows, ]
+
+res_mybaits <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
+                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+logistic<-function(y=0){1/(1+exp(-y))}
+for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
+  allele1 <- substr(i,1,1)
+  allele2 <- substr(i,2,2)
+  filtered_data <- mybaitsAD_filtered %>% filter(.data[[i]] > 0)
+  allele1_counts <- filtered_data[[allele1]]
+  allele2_counts <- filtered_data[[allele2]]
+  lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
+  p.value<-summary(lm1)$coefficients[4]
+  p.trans<-logistic(lm1$coefficients)
+  CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
+  CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
+  res_mybaits <- rbind(res_mybaits, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
+                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
+
+res_twist <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
+                        CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+logistic<-function(y=0){1/(1+exp(-y))}
+for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
+  allele1 <- substr(i,1,1)
+  allele2 <- substr(i,2,2)
+  filtered_data <- twistAD_filtered %>% filter(.data[[i]] > 0)
+  allele1_counts <- filtered_data[[allele1]]
+  allele2_counts <- filtered_data[[allele2]]
+  lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
+  p.value<-summary(lm1)$coefficients[4]
+  p.trans<-logistic(lm1$coefficients)
+  CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
+  CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
+  res_twist <- rbind(res_twist, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
+                                           CI.low=CIlow.trans, CI.high=CIup.trans)) }
+
+res_shotgun <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
+                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+logistic<-function(y=0){1/(1+exp(-y))}
+for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
+  allele1 <- substr(i,1,1)
+  allele2 <- substr(i,2,2)
+  filtered_data <- shotgunAD_filtered %>% filter(.data[[i]] > 0)
+  allele1_counts <- filtered_data[[allele1]]
+  allele2_counts <- filtered_data[[allele2]]
+  lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
+  p.value<-summary(lm1)$coefficients[4]
+  p.trans<-logistic(lm1$coefficients)
+  CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
+  CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
+  res_shotgun <- rbind(res_shotgun, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
+                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
+res_shotgun
+res_mybaits
+res_twist
+
+#### VIOLIN PLOT OF ALLELE BIAS
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AC>0)%>%select(AC), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(AC>0)%>%select(AC), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(AC>0)%>%select(AC), Group = "Twist")
+combined_AC <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AG>0)%>%select(AG), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(AG>0)%>%select(AG), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(AG>0)%>%select(AG), Group = "Twist")
+combined_AG <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AT>0)%>%select(AT), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(AT>0)%>%select(AT), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(AT>0)%>%select(AT), Group = "Twist")
+combined_AT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(CG>0)%>%select(CG), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(CG>0)%>%select(CG), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(CG>0)%>%select(CG), Group = "Twist")
+combined_CG <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(CT>0)%>%select(CT), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(CT>0)%>%select(CT), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(CT>0)%>%select(CT), Group = "Twist")
+combined_CT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(GT>0)%>%select(GT), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(GT>0)%>%select(GT), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(GT>0)%>%select(GT), Group = "Twist")
+combined_GT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+a1 <- ggplot(combined_AG, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  # Add boxplot inside violin
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  labs(y="BRW001") +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank())
+a2 <- ggplot(combined_CT, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+a3 <- ggplot(combined_AC, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+a4 <- ggplot(combined_AT, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+a5 <- ggplot(combined_CG, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+a6 <- ggplot(combined_GT, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+# Create a function to extract the legend
+get_legend <- function(my_plot) {
+  g <- ggplotGrob(my_plot)
+  legend <- g$grobs[[which(sapply(g$grobs, function(x) x$name) == "guide-box")]]
+  if (is.null(legend)) stop("Legend not found in the plot!")
+  return(legend)}
+shared_legend <- get_legend(
+  ggplot(combined_GT, aes(x = Group, y = Frequency, fill = Group)) +
+    geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+    geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+    scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+    theme_minimal() +
+    theme(legend.position = "top") )
+
+#Sample DVT014
+mybaitsAD <- cbind(mybaitspos, mybaitscount[5:8]) %>%
+  rename(A=4, C=5, G=6, T=7) %>%
+  mutate(totDepth=A+C+G+T)  %>%
+  mutate(scaff = paste(chr, pos, sep = "_")) %>%
+  filter(totDepth >2) %>%
+  rowwise() %>%
+  filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
+  mutate(
+    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+    AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
+    AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
+    CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
+    CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
+    GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+twistAD <- cbind(twistpos, twistcount[5:8]) %>%
+  rename(A=4, C=5, G=6, T=7) %>%
+  mutate(totDepth=A+C+G+T)  %>%
+  mutate(scaff = paste(chr, pos, sep = "_")) %>%
+  filter(totDepth >2) %>%
+  rowwise() %>%
+  filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
+  mutate(
+    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+    AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
+    AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
+    CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
+    CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
+    GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+shotgunAD <- cbind(shotgunpos, shotguncount[5:8]) %>%
+  rename(A=4, C=5, G=6, T=7) %>%
+  mutate(totDepth=A+C+G+T)  %>%
+  mutate(scaff = paste(chr, pos, sep = "_")) %>%
+  filter(totDepth >2) %>%
+  rowwise() %>%
+  filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
+  mutate(
+    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+    AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
+    AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
+    CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
+    CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
+    GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+common_rows <- Reduce(intersect, list(rownames(het_dvt014), mybaitsAD$scaff, twistAD$scaff, shotgunAD$scaff)) #3019
+mybaitsAD_filtered <- mybaitsAD[mybaitsAD$scaff %in% common_rows, ]
+twistAD_filtered <- twistAD[twistAD$scaff %in% common_rows, ]
+shotgunAD_filtered <- shotgunAD[shotgunAD$scaff %in% common_rows, ]
+
+res_mybaits <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
+                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+logistic<-function(y=0){1/(1+exp(-y))}
+for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
+  allele1 <- substr(i,1,1)
+  allele2 <- substr(i,2,2)
+  filtered_data <- mybaitsAD_filtered %>% filter(.data[[i]] > 0)
+  allele1_counts <- filtered_data[[allele1]]
+  allele2_counts <- filtered_data[[allele2]]
+  lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
+  p.value<-summary(lm1)$coefficients[4]
+  p.trans<-logistic(lm1$coefficients)
+  CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
+  CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
+  res_mybaits <- rbind(res_mybaits, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
+                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
+
+res_twist <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
+                        CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+logistic<-function(y=0){1/(1+exp(-y))}
+for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
+  allele1 <- substr(i,1,1)
+  allele2 <- substr(i,2,2)
+  filtered_data <- twistAD_filtered %>% filter(.data[[i]] > 0)
+  allele1_counts <- filtered_data[[allele1]]
+  allele2_counts <- filtered_data[[allele2]]
+  lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
+  p.value<-summary(lm1)$coefficients[4]
+  p.trans<-logistic(lm1$coefficients)
+  CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
+  CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
+  res_twist <- rbind(res_twist, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
+                                           CI.low=CIlow.trans, CI.high=CIup.trans)) }
+
+res_shotgun <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
+                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+logistic<-function(y=0){1/(1+exp(-y))}
+for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
+  allele1 <- substr(i,1,1)
+  allele2 <- substr(i,2,2)
+  filtered_data <- shotgunAD_filtered %>% filter(.data[[i]] > 0)
+  allele1_counts <- filtered_data[[allele1]]
+  allele2_counts <- filtered_data[[allele2]]
+  lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
+  p.value<-summary(lm1)$coefficients[4]
+  p.trans<-logistic(lm1$coefficients)
+  CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
+  CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
+  res_shotgun <- rbind(res_shotgun, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
+                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
+res_shotgun
+res_mybaits
+res_twist
+
+#### VIOLIN PLOT OF ALLELE BIAS
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AC>0)%>%select(AC), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(AC>0)%>%select(AC), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(AC>0)%>%select(AC), Group = "Twist")
+combined_AC <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AG>0)%>%select(AG), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(AG>0)%>%select(AG), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(AG>0)%>%select(AG), Group = "Twist")
+combined_AG <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AT>0)%>%select(AT), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(AT>0)%>%select(AT), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(AT>0)%>%select(AT), Group = "Twist")
+combined_AT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(CG>0)%>%select(CG), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(CG>0)%>%select(CG), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(CG>0)%>%select(CG), Group = "Twist")
+combined_CG <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(CT>0)%>%select(CT), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(CT>0)%>%select(CT), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(CT>0)%>%select(CT), Group = "Twist")
+combined_CT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(GT>0)%>%select(GT), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(GT>0)%>%select(GT), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(GT>0)%>%select(GT), Group = "Twist")
+combined_GT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+b1 <- ggplot(combined_AG, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  # Add boxplot inside violin
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  labs(y="DVT014") +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank())
+b2 <- ggplot(combined_CT, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+b3 <- ggplot(combined_AC, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+b4 <- ggplot(combined_AT, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+b5 <- ggplot(combined_CG, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+b6 <- ggplot(combined_GT, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+
+#Sample NCP002
+##mybaits
+mybaitsAD <- cbind(mybaitspos, mybaitscount[9:12]) %>%
+  rename(A=4, C=5, G=6, T=7) %>%
+  mutate(totDepth=A+C+G+T)  %>%
+  mutate(scaff = paste(chr, pos, sep = "_")) %>%
+  filter(totDepth >2) %>%
+  rowwise() %>%
+  filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
+  mutate(
+    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+    AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
+    AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
+    CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
+    CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
+    GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+twistAD <- cbind(twistpos, twistcount[9:12]) %>%
+  rename(A=4, C=5, G=6, T=7) %>%
+  mutate(totDepth=A+C+G+T)  %>%
+  mutate(scaff = paste(chr, pos, sep = "_")) %>%
+  filter(totDepth >2) %>%
+  rowwise() %>%
+  filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
+  mutate(
+    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+    AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
+    AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
+    CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
+    CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
+    GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+shotgunAD <- cbind(shotgunpos, shotguncount[9:12]) %>%
+  rename(A=4, C=5, G=6, T=7) %>%
+  mutate(totDepth=A+C+G+T)  %>%
+  mutate(scaff = paste(chr, pos, sep = "_")) %>%
+  filter(totDepth >2) %>%
+  rowwise() %>%
+  filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
+  mutate(
+    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+    AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
+    AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
+    CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
+    CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
+    GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+common_rows <- Reduce(intersect, list(rownames(het_ncp002), mybaitsAD$scaff, twistAD$scaff, shotgunAD$scaff)) #67
+mybaitsAD_filtered <- mybaitsAD[mybaitsAD$scaff %in% common_rows, ]
+twistAD_filtered <- twistAD[twistAD$scaff %in% common_rows, ]
+shotgunAD_filtered <- shotgunAD[shotgunAD$scaff %in% common_rows, ]
+
+res_mybaits <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
+                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+logistic<-function(y=0){1/(1+exp(-y))}
+for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
+  allele1 <- substr(i,1,1)
+  allele2 <- substr(i,2,2)
+  filtered_data <- mybaitsAD_filtered %>% filter(.data[[i]] > 0)
+  allele1_counts <- filtered_data[[allele1]]
+  allele2_counts <- filtered_data[[allele2]]
+  lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
+  p.value<-summary(lm1)$coefficients[4]
+  p.trans<-logistic(lm1$coefficients)
+  CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
+  CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
+  res_mybaits <- rbind(res_mybaits, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
+                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
+
+res_twist <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
+                        CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+logistic<-function(y=0){1/(1+exp(-y))}
+for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
+  allele1 <- substr(i,1,1)
+  allele2 <- substr(i,2,2)
+  filtered_data <- twistAD_filtered %>% filter(.data[[i]] > 0)
+  allele1_counts <- filtered_data[[allele1]]
+  allele2_counts <- filtered_data[[allele2]]
+  lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
+  p.value<-summary(lm1)$coefficients[4]
+  p.trans<-logistic(lm1$coefficients)
+  CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
+  CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
+  res_twist <- rbind(res_twist, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
+                                           CI.low=CIlow.trans, CI.high=CIup.trans)) }
+
+res_shotgun <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
+                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+logistic<-function(y=0){1/(1+exp(-y))}
+for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
+  allele1 <- substr(i,1,1)
+  allele2 <- substr(i,2,2)
+  filtered_data <- shotgunAD_filtered %>% filter(.data[[i]] > 0)
+  allele1_counts <- filtered_data[[allele1]]
+  allele2_counts <- filtered_data[[allele2]]
+  lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
+  p.value<-summary(lm1)$coefficients[4]
+  p.trans<-logistic(lm1$coefficients)
+  CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
+  CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
+  res_shotgun <- rbind(res_shotgun, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
+                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
+res_shotgun
+res_mybaits
+res_twist
+
+#### VIOLIN PLOT OF ALLELE BIAS
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AC>0)%>%select(AC), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(AC>0)%>%select(AC), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(AC>0)%>%select(AC), Group = "Twist")
+combined_AC <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AG>0)%>%select(AG), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(AG>0)%>%select(AG), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(AG>0)%>%select(AG), Group = "Twist")
+combined_AG <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AT>0)%>%select(AT), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(AT>0)%>%select(AT), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(AT>0)%>%select(AT), Group = "Twist")
+combined_AT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(CG>0)%>%select(CG), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(CG>0)%>%select(CG), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(CG>0)%>%select(CG), Group = "Twist")
+combined_CG <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(CT>0)%>%select(CT), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(CT>0)%>%select(CT), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(CT>0)%>%select(CT), Group = "Twist")
+combined_CT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(GT>0)%>%select(GT), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(GT>0)%>%select(GT), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(GT>0)%>%select(GT), Group = "Twist")
+combined_GT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+c1 <- ggplot(combined_AG, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  # Add boxplot inside violin
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  labs(y="NCP002") +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank())
+c2 <- ggplot(combined_CT, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+c3 <- ggplot(combined_AC, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+c4 <- ggplot(combined_AT, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+c5 <- ggplot(combined_CG, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+c6 <- ggplot(combined_GT, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+
+#Sample VKP001
+mybaitsAD <- cbind(mybaitspos, mybaitscount[13:16]) %>%
+  rename(A=4, C=5, G=6, T=7) %>%
+  mutate(totDepth=A+C+G+T)  %>%
+  mutate(scaff = paste(chr, pos, sep = "_")) %>%
+  filter(totDepth >2) %>%
+  rowwise() %>%
+  filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
+  mutate(
+    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+    AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
+    AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
+    CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
+    CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
+    GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+twistAD <- cbind(twistpos, twistcount[13:16]) %>%
+  rename(A=4, C=5, G=6, T=7) %>%
+  mutate(totDepth=A+C+G+T)  %>%
+  mutate(scaff = paste(chr, pos, sep = "_")) %>%
+  filter(totDepth >2) %>%
+  rowwise() %>%
+  filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
+  mutate(
+    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+    AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
+    AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
+    CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
+    CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
+    GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+shotgunAD <- cbind(shotgunpos, shotguncount[13:16]) %>%
+  rename(A=4, C=5, G=6, T=7) %>%
+  mutate(totDepth=A+C+G+T)  %>%
+  mutate(scaff = paste(chr, pos, sep = "_")) %>%
+  filter(totDepth >2) %>%
+  rowwise() %>%
+  filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
+  mutate(
+    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+    AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
+    AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
+    CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
+    CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
+    GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+common_rows <- Reduce(intersect, list(rownames(het_vkp001), mybaitsAD$scaff, twistAD$scaff, shotgunAD$scaff)) #8879
+mybaitsAD_filtered <- mybaitsAD[mybaitsAD$scaff %in% common_rows, ]
+twistAD_filtered <- twistAD[twistAD$scaff %in% common_rows, ]
+shotgunAD_filtered <- shotgunAD[shotgunAD$scaff %in% common_rows, ]
+
+res_mybaits <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
+                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+logistic<-function(y=0){1/(1+exp(-y))}
+for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
+  allele1 <- substr(i,1,1)
+  allele2 <- substr(i,2,2)
+  filtered_data <- mybaitsAD_filtered %>% filter(.data[[i]] > 0)
+  allele1_counts <- filtered_data[[allele1]]
+  allele2_counts <- filtered_data[[allele2]]
+  lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
+  p.value<-summary(lm1)$coefficients[4]
+  p.trans<-logistic(lm1$coefficients)
+  CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
+  CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
+  res_mybaits <- rbind(res_mybaits, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
+                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
+
+res_twist <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
+                        CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+logistic<-function(y=0){1/(1+exp(-y))}
+for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
+  allele1 <- substr(i,1,1)
+  allele2 <- substr(i,2,2)
+  filtered_data <- twistAD_filtered %>% filter(.data[[i]] > 0)
+  allele1_counts <- filtered_data[[allele1]]
+  allele2_counts <- filtered_data[[allele2]]
+  lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
+  p.value<-summary(lm1)$coefficients[4]
+  p.trans<-logistic(lm1$coefficients)
+  CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
+  CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
+  res_twist <- rbind(res_twist, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
+                                           CI.low=CIlow.trans, CI.high=CIup.trans)) }
+
+res_shotgun <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
+                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+logistic<-function(y=0){1/(1+exp(-y))}
+for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
+  allele1 <- substr(i,1,1)
+  allele2 <- substr(i,2,2)
+  filtered_data <- shotgunAD_filtered %>% filter(.data[[i]] > 0)
+  allele1_counts <- filtered_data[[allele1]]
+  allele2_counts <- filtered_data[[allele2]]
+  lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
+  p.value<-summary(lm1)$coefficients[4]
+  p.trans<-logistic(lm1$coefficients)
+  CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
+  CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
+  res_shotgun <- rbind(res_shotgun, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
+                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
+
+res_shotgun
+res_mybaits
+res_twist
+#### VIOLIN PLOT OF ALLELE BIAS
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AC>0)%>%select(AC), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(AC>0)%>%select(AC), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(AC>0)%>%select(AC), Group = "Twist")
+combined_AC <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AG>0)%>%select(AG), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(AG>0)%>%select(AG), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(AG>0)%>%select(AG), Group = "Twist")
+combined_AG <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AT>0)%>%select(AT), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(AT>0)%>%select(AT), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(AT>0)%>%select(AT), Group = "Twist")
+combined_AT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(CG>0)%>%select(CG), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(CG>0)%>%select(CG), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(CG>0)%>%select(CG), Group = "Twist")
+combined_CG <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(CT>0)%>%select(CT), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(CT>0)%>%select(CT), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(CT>0)%>%select(CT), Group = "Twist")
+combined_CT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(GT>0)%>%select(GT), Group = "shotgun")
+df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(GT>0)%>%select(GT), Group = "myBaits")
+df3 <- data.frame(Frequency = twistAD_filtered%>%filter(GT>0)%>%select(GT), Group = "Twist")
+combined_GT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
+  mutate(Group = factor(Group, levels = c("shotgun", "myBaits", "Twist"))) 
+d1 <- ggplot(combined_AG, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  # Add boxplot inside violin
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+  labs(y="VKP001") +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank())
+d2 <- ggplot(combined_CT, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+d3 <- ggplot(combined_AC, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+d4 <- ggplot(combined_AT, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+d5 <- ggplot(combined_CG, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+d6 <- ggplot(combined_GT, aes(x = Group, y = Frequency, fill = Group)) +
+  geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
+  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
+
+# Create titles for each column
+title1 <- textGrob("AG", gp = gpar(fontsize = 14, fontface = "bold"))
+title2 <- textGrob("CT", gp = gpar(fontsize = 14, fontface = "bold"))
+title3 <- textGrob("AC", gp = gpar(fontsize = 14, fontface = "bold"))
+title4 <- textGrob("AT", gp = gpar(fontsize = 14, fontface = "bold"))
+title5 <- textGrob("CG", gp = gpar(fontsize = 14, fontface = "bold"))
+title6 <- textGrob("GT", gp = gpar(fontsize = 14, fontface = "bold"))
+
+grob_plots <- arrangeGrob(a1,a2,a3,a4,a5,a6,
+                          d1,d2,d3,d4,d5,d6,
+                          b1,b2,b3,b4,b5,b6,
+                          c1,c2,c3,c4,c5,c6, nrow=4,ncol=6,widths = c(1,1,1,1,1,1))
+
+combined <- grid.arrange(arrangeGrob(title1, title2, title3, title4, title5, title6, ncol = 6, widths = c(1,1,1,1,1,1)),
+                         grob_plots, shared_legend, nrow = 3, heights = c(1,10,1))
+#14x7
