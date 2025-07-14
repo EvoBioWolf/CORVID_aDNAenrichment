@@ -174,24 +174,11 @@ conda activate biotools
 cd ${dat}
 cd 00_baitscomparison/angsd
 
-#hap_random_maxmis_q20
-angsd -bam bam_${1}.filelist -dohaplocall 1 -doCounts 1 -rf ${dat}/${3} \
--minMapQ 20 -minQ 20 -uniqueOnly 1 -remove_bads 1 \
--nThreads 8 -minMinor 1 -out ${1}_${2}_haprandom_maxmis_q20 
-
-angsd -bam bam_${1}.filelist -dohaplocall 2 -doCounts 1 -rf ${dat}/${3} \
--minMapQ 20 -minQ 20 -uniqueOnly 1 -remove_bads 1 \
--nThreads 8 -minMinor 1 -out ${1}_${2}_hapconsensus_maxmis_q20
 
 #geno
-angsd -bam bam_${1}.filelist -GL 2 -doMaf 2 -doMajorMinor 1 -ref ${ref} -doGeno 4 -doPost 1 -doGlf 2 -doCounts 1 -doPlink 2 \
--minMapQ 20 -minQ 20 -uniqueOnly 1 -remove_bads 1 \
--nThreads 8 -rf ${dat}/${3} -out ${1}_${2}_geno_maxmis_q20
-
-#geno_trans
-angsd -bam bam_${1}.filelist -GL 2 -doMaf 2 -doMajorMinor 1 -ref ${ref} -doGeno 4 -doPost 1 -doGlf 2 -doCounts 1 -doPlink 2 \
--minMapQ 20 -minQ 20 -uniqueOnly 1 -remove_bads 1 -noTrans 1 \
--nThreads 8 -rf ${dat}/${3} -out ${1}_${2}_geno_maxmis_q20_trans 
+angsd -bam bam_${1}_4.filelist -GL 2 -doMaf 2 -doMajorMinor 1 -ref ${ref} -doGeno 4 -doPost 1 -doGlf 2 -doCounts 1 -doPlink 2 \
+-minMapQ 20 -minQ 20 -uniqueOnly 1 -remove_bads 1 -geno_minDepth 3 \
+-nThreads 12 -rf ${dat}/${3} -out ${1}_${2}_geno_maxmis_q20_dp3
 
 #parameters controlling missingness allowed for each sample and site are removed
 
