@@ -4,185 +4,463 @@ library(dplyr)
 library(gridExtra)
 library(grid)
 library(tibble)
-library(VennDiagram)
+library(ggvenn)
 library(data.table)
 library(tidyr)
 library(ggsignif)
+library(patchwork)
+library(ggrepel)
 
-setwd("/Users/chyiyin/Dropbox/CORVID_baits/Analyses")
-dat <- read.delim("baitscomparison23.txt",header=TRUE, sep="\t") 
+#setwd("/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/00_baitscomparison") 
+setwd("~/Dropbox/CORVID_baits/Analyses") 
+dat <- read.csv("baitscomparison23.csv",header=TRUE, sep=",") %>%
+  mutate(All_mapped_reads_to_original_panel = ifelse(Method == "myBaits", All_mapped_reads_to_104k_121bp, All_mapped_reads_to_232k_80bp)) %>%
+  mutate(Nr_comparable_mapped_reads = Nr_mapped_reads - All_non_comparable_mapped_reads) %>%
+  mutate(Target_eff_adjusted = All_mapped_reads_to_104k_80bp / Nr_comparable_mapped_reads*100) %>%
+  mutate(Target_eff_original = All_mapped_reads_to_original_panel / Nr_mapped_reads*100) %>%
+  mutate(Target_eff_adjusted_more = ifelse(Method == "Twist", (All_mapped_reads_to_104k_80bp / (Nr_comparable_mapped_reads*104/232))*100, Target_eff_adjusted)) %>%
+  mutate(Target_eff_adjusted_more2 = ifelse(Method == "Twist", (All_mapped_reads_to_104k_80bp*2 / (Nr_comparable_mapped_reads*104/232))*100, Target_eff_adjusted)) %>%
+  mutate(Target_eff_original_2x = ifelse(Method == "Twist", (All_mapped_reads_to_original_panel*2 / Nr_mapped_reads*100), Target_eff_original)) %>%
+  mutate(Ontarget_rate_adjusted = All_mapped_reads_to_104k_80bp / (Nr_rawreads - All_non_comparable_mapped_reads)*100) %>%
+  mutate(Ontarget_rate = All_mapped_reads_to_original_panel / Nr_rawreads*100) %>%
+  mutate(Obs_exp_cov = Mean_cov_of_104k_SNPsite_incdup / Expected_genomic_coverage_of_input) %>%
+  mutate(Percentage_of_mtDNA = All_MT_reads / Nr_mapped_reads * 100)
 
-#data grouped by country and sorted from the youngest to oldest samples
-dat$perdedupmappedreads <- (dat$Nr..Dedup..Mapped.Reads - dat$Reads.to.be.ommitted) / (dat$Nr..Reads.Into.Mapping - dat$Reads.to.be.ommitted) *100 
-dat$complexity <- dat$Mean.cov.of.target.104k.SNPsite / dat$Expected.genomic.coverage..based.on.qPCR.
+# Figure 2: Capture efficiency and fold enrichment --------------------------------------------------------------
+scatter_data <- dat %>%
+  select(Sample, Method, Endogenous_DNA, Target_eff_adjusted, Target_eff_original, Ontarget_rate_adjusted, Ontarget_rate, 
+         Target_eff_adjusted_more, Target_eff_adjusted_more2,Target_eff_original_2x,Percentage_of_mtDNA,
+         Obs_exp_cov, Mean_cov_of_104k_SNPsite_incdup, Mean_cov_of_target_104k_SNPsite_dedup,Mean_cov_of_104k_80bp_incdup) %>%
+  pivot_wider(names_from = Method, values_from = c(Endogenous_DNA,Target_eff_adjusted, Target_eff_original, Ontarget_rate_adjusted, Ontarget_rate, 
+                                                   Target_eff_adjusted_more, Target_eff_adjusted_more2,Target_eff_original_2x,Percentage_of_mtDNA,
+                                                   Obs_exp_cov, Mean_cov_of_104k_SNPsite_incdup, Mean_cov_of_target_104k_SNPsite_dedup,Mean_cov_of_104k_80bp_incdup))
 
-dat1 = dat %>% group_by(Country) %>% arrange(desc(Age), .by_group = TRUE)
+model <- lm(Endogenous_DNA_Twist ~ Endogenous_DNA_myBaits, data = scatter_data)
+# Test if slope is different from 1
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+# Test if intercept is different from 0
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+  "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+  "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+  "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+p1 <- ggplot(scatter_data, aes(x=Endogenous_DNA_Twist , y =Endogenous_DNA_myBaits)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 5, y = 90, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Twist", y = "myBaits", title = "Reads mapped to\n crow genome (%)") + ylim(0,100) + xlim(0,100) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+
+model <- lm(Target_eff_adjusted_Twist ~ Target_eff_adjusted_myBaits, data = scatter_data)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+p2 <- ggplot(scatter_data, aes(x=Target_eff_adjusted_Twist , y =Target_eff_adjusted_myBaits)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 30, y = 25, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Twist", y = "myBaits", title = "Target efficiency (%)\n (comparable panel)") + ylim(0,100) + xlim(0,100) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+
+model <- lm(Target_eff_adjusted_more_Twist ~ Target_eff_adjusted_more_myBaits, data = scatter_data)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+supp_x <- ggplot(scatter_data, aes(x=Target_eff_adjusted_more_Twist , y =Target_eff_adjusted_more_myBaits)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 50, y = 30, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Twist", y = "myBaits", title = "Target efficiency of comparable panel (%)\n (104/232 off-target for Twist)") + ylim(0,100) + xlim(0,100) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+
+model <- lm(Target_eff_adjusted_more2_Twist ~ Target_eff_adjusted_more2_myBaits, data = scatter_data)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+supp_y <- ggplot(scatter_data, aes(x=Target_eff_adjusted_more2_Twist , y =Target_eff_adjusted_more2_myBaits)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 50, y = 30, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Twist", y = "myBaits", title = "Target efficiency of comparable panel (%)\n (2X on-target & 104/232 off-target for Twist)") + ylim(0,100) + xlim(0,100) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+
+model <- lm(Target_eff_original_2x_Twist ~ Target_eff_original_2x_myBaits, data = scatter_data)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+supp_z <- ggplot(scatter_data, aes(x=Target_eff_original_2x_Twist , y =Target_eff_original_2x_myBaits)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 50, y = 30, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Twist", y = "myBaits", title = "Target efficiency of original panel (%)\n (2X on-target for Twist)") + ylim(0,100) + xlim(0,100) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+
+model <- lm(Target_eff_original_Twist ~ Target_eff_original_myBaits, data = scatter_data)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+p3 <- ggplot(scatter_data, aes(x=Target_eff_original_Twist , y =Target_eff_original_myBaits)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 30, y = 25, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Twist", y = "myBaits", title = "Target efficiency (%)\n (original panel)") + ylim(0,100) + xlim(0,100) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+
+model <- lm(Ontarget_rate_Twist ~ Ontarget_rate_myBaits, data = scatter_data)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+p4 <- ggplot(scatter_data, aes(x=Ontarget_rate_Twist , y =Ontarget_rate_myBaits)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 5, y = 90, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Twist", y = "myBaits", title = "On-target rate (%)\n (original panel)") + ylim(0,100) + xlim(0,100) + 
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+
+model <- lm(Percentage_of_mtDNA_Twist ~ Percentage_of_mtDNA_myBaits, data = scatter_data)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+p5 <- ggplot(scatter_data, aes(x=Percentage_of_mtDNA_Twist , y =Percentage_of_mtDNA_myBaits)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 0.05, y = 0.03, label = eqn, hjust = 0, size = 2.5) +
+  geom_text(data = scatter_data %>% filter(Percentage_of_mtDNA_myBaits>0.05),aes(label = Sample),size = 2.5, hjust=0, vjust = -1) +
+  labs(x = "Twist", y = "myBaits", title = "Mito reads among all\n mapped reads (%)") + ylim(0,0.11) + xlim(0,0.11) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+
+Wgs_mapped_to_104k_80bp <- rep(c(20820173,1927648,307075,2811357),2)
+Wgs_mapped_to_104k_121bp <- rep(c(27475838,2590139,408977,3716873),2)
+Wgs_mapped_to_232k_80bp <- rep(c(47585894,4437366,691157,6387808),2)
+WGS_all_mapped_reads <- rep(c(1642132057, 161971725, 24544200, 223432035),2)
+Wgs_non_comparable_wgs_reads = (Wgs_mapped_to_104k_121bp-Wgs_mapped_to_104k_80bp)+(Wgs_mapped_to_232k_80bp-Wgs_mapped_to_104k_80bp)
+
+fold_eff_dat <- dat %>% filter(Sample %in% c("BRW001","DVT014","NCP002","VKP001")) %>% 
+  mutate(Wgs_mapped_to_104k_80bp = Wgs_mapped_to_104k_80bp,
+         Wgs_mapped_to_104k_121bp = Wgs_mapped_to_104k_121bp,
+         Wgs_mapped_to_232k_80bp = Wgs_mapped_to_232k_80bp,
+         Wgs_non_comparable_wgs_reads = Wgs_non_comparable_wgs_reads) %>%
+  mutate(Wgs_target_eff_adjusted = Wgs_mapped_to_104k_80bp/(WGS_all_mapped_reads-Wgs_non_comparable_wgs_reads)*100) %>%
+  mutate(Wgs_target_eff_original =  ifelse(Method == "myBaits", Wgs_mapped_to_104k_121bp/WGS_all_mapped_reads*100, Wgs_mapped_to_232k_80bp/WGS_all_mapped_reads*100)) %>%
+  mutate(fold_enrich_adjusted = Target_eff_adjusted / Wgs_target_eff_adjusted) %>%
+  mutate(fold_enrich_original = Target_eff_original / Wgs_target_eff_original)
+
+fold1 <- ggplot(fold_eff_dat, aes(x = Sample, y = fold_enrich_adjusted, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Sample", y = "Fold Enrichment", title="Comparable panel") +
+  theme_minimal() + ylim(0, 60) +  guides(fill = guide_legend(ncol = 2)) +
+  scale_fill_manual(values = c("myBaits" = "#E69F00", "Twist" = "#0072B2")) + theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),legend.position = c(0.5, 1),legend.title = element_blank())
+
+fold2 <- ggplot(fold_eff_dat, aes(x = Sample, y = fold_enrich_original, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Sample", y = "Fold Enrichment", title = "Original panel") +
+  theme_minimal() + ylim(0, 60) + guides(fill = guide_legend(ncol = 2)) +
+  scale_fill_manual(values = c("myBaits" = "#E69F00", "Twist" = "#0072B2")) + theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),legend.position = c(0.5, 1),legend.title = element_blank())
+
+row1 <- p4 + p1 + p2 + p3 + plot_layout(widths = c(1, 1, 1, 1))
+row2 <- fold1 + fold2 + p5 + plot_layout(widths = c(1.5, 1.5,1))
+row1 / row2 + plot_annotation(tag_levels = 'A') & theme(plot.margin = unit(c(1, 1, 1, 1), "pt")) #8x5
+supp <- (supp_x + supp_y) / (supp_z + plot_spacer()) + plot_annotation(tag_levels = 'A') + plot_layout(guides = 'collect', widths = c(1, 1)) #7x5
+
+# Figure 3: Coverage ----------------------------------------------------------------------------
+# Assess SNP coverage and evenness
+model <- lm(Mean_cov_of_104k_SNPsite_incdup_Twist ~ Mean_cov_of_104k_SNPsite_incdup_myBaits, data = scatter_data)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+p5 <- ggplot(scatter_data, aes(x=Mean_cov_of_104k_SNPsite_incdup_Twist , y =Mean_cov_of_104k_SNPsite_incdup_myBaits)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 100, y = 45, label = eqn, hjust = 0, size = 2.5) +
+  geom_text(data = scatter_data %>% filter(Sample %in% c("BRW001", "VKP001", "TPC001")),aes(label = Sample), vjust = -1, size = 2.5) +
+  labs(x = "Twist", y = "myBaits", title = "Mean coverage of 104K\n SNP sites with duplicates") + ylim(0,220) + xlim(0,220) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+
+model <- lm(Mean_cov_of_target_104k_SNPsite_dedup_Twist ~ Mean_cov_of_target_104k_SNPsite_dedup_myBaits, data = scatter_data)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+p6 <- ggplot(scatter_data, aes(x=Mean_cov_of_target_104k_SNPsite_dedup_Twist , y=Mean_cov_of_target_104k_SNPsite_dedup_myBaits)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 25, y = 10, label = eqn, hjust = 0, size = 2.5) +
+  geom_text(data = scatter_data %>% filter(Sample %in% c("BRW001", "VKP001", "TPC001")),aes(label = Sample), vjust = -1, size = 2.5) +
+  labs(x = "Twist", y = "myBaits", title = "Mean coverage of 104K\n SNP sites without duplicates") + ylim(0,50) + xlim(0,50) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+
+model <- lm(Mean_cov_of_104k_80bp_incdup_Twist ~ Mean_cov_of_104k_80bp_incdup_myBaits, data = scatter_data)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+p7 <- ggplot(scatter_data, aes(x=Mean_cov_of_104k_80bp_incdup_Twist , y=Mean_cov_of_104k_80bp_incdup_myBaits)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 100, y = 45, label = eqn, hjust = 0, size = 2.5) +
+  geom_text(data = scatter_data %>% filter(Sample %in% c("BRW001", "VKP001", "TPC001")),aes(label = Sample), vjust = -1, size = 2.5) +
+  labs(x = "Twist", y = "myBaits", title = "Mean coverage of comparable\n panel with duplicates") + ylim(0,200) + xlim(0,200) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8)) #one point removed in plot (outside range) 
+
+dat1 = dat %>% arrange(desc(Age), .by_group = TRUE)
 twistdat = dat1 %>% filter(Method == "Twist") 
 mybaitsdat = dat1 %>% filter(Method == "myBaits")
 
-##### Figure 2 scatterplot #####
-par(mfcol=c(2,4))
-
-#1
-x=twistdat$perdedupmappedreads
-y=mybaitsdat$perdedupmappedreads
-plot(x=twistdat$perdedupmappedreads, y=mybaitsdat$perdedupmappedreads,main = "Deduplicate reads mapped to\n crow genome (%)",
-     xlab = "Twist", ylab = "myBaits", pch = 19, frame = FALSE,xlim=c(0,50), ylim=c(0,50), cex.lab = 1.4, cex.axis=1.3)
-abline(lm(y ~ x), col = "blue")
-abline(0,1,col = "black",lty=2)
-mtext("A", side = 3, adj = 0, line = 1.5, cex = 1.2, font = 2)
-
-#2 E
-x=twistdat$Mean.cov.of.target.104k.SNPsite
-y=mybaitsdat$Mean.cov.of.target.104k.SNPsite
-plot(x=twistdat$Mean.cov.of.target.104k.SNPsite, y=mybaitsdat$Mean.cov.of.target.104k.SNPsite,main = "Mean coverage of\n 104K SNP sites",
-     xlab = "Twist", ylab = "myBaits", pch = 19, frame = FALSE, xlim=c(0,50), ylim=c(0,50), cex.lab = 1.4, cex.axis=1.3)
-abline(lm(y ~ x), col = "blue")
-abline(0,1,col = "black",lty=2)
-mtext("E", side = 3, adj = 0, line = 1.5, cex = 1.2, font = 2)
-points_to_label <- c(7,8,11)
-text(twistdat$Mean.cov.of.target.104k.SNPsite[points_to_label],mybaitsdat$Mean.cov.of.target.104k.SNPsite[points_to_label], 
-     labels = twistdat$Sample.Name[points_to_label], 
-     pos = 4, cex = 1, col = "red")
-
-#3
-x=twistdat$On.target.alignment.adjusted.to.104K.80bp.panel....
-y=mybaitsdat$On.target.alignment.adjusted.to.104K.80bp.panel....
-plot(x=twistdat$On.target.alignment.adjusted.to.104K.80bp.panel...., y=mybaitsdat$On.target.alignment.adjusted.to.104K.80bp.panel....,main = "On-target deduplicate alignment to\n 104K_80bp panel (%)",
-     xlab = "Twist", ylab = "myBaits", pch = 19, frame = FALSE, xlim=c(0,70), ylim=c(0,70), cex.lab = 1.4, cex.axis=1.3)
-abline(lm(y ~ x), col = "blue")
-abline(0,1,col = "black",lty=2)
-mtext("B", side = 3, adj = 0, line = 1.5, cex = 1.2, font = 2)
-
-#4 F
-x=twistdat$complexity
-y=mybaitsdat$complexity
-plot(x=twistdat$complexity, y=mybaitsdat$complexity,main = "Observed vs expected\n coverage",
-     xlab = "Twist", ylab = "myBaits", pch = 19, frame = FALSE, xlim=c(0,1), ylim=c(0,1), cex.lab = 1.4, cex.axis=1.3)
-abline(lm(y ~ x), col = "blue")
-abline(0,1,col = "black",lty=2)
-mtext("F", side = 3, adj = 0, line = 1.5, cex = 1.2, font = 2)
-text(twistdat$complexity[points_to_label],mybaitsdat$complexity[points_to_label], 
-     labels = twistdat$Sample.Name[points_to_label], 
-     pos = 4, cex = 1, col = "red")
-
-
-#5
-x=twistdat$On.target.alignment.to.original.bait.panel....
-y=mybaitsdat$On.target.alignment.to.original.bait.panel....
-plot(x=twistdat$On.target.alignment.to.original.bait.panel...., y=mybaitsdat$On.target.alignment.to.original.bait.panel....,main = "On-target deduplicate alignment to\n original probe length & size (%)",
-     xlab = "Twist", ylab = "myBaits", pch = 19, frame = FALSE, xlim=c(0,70), ylim=c(0,70), cex.lab = 1.4, cex.axis=1.3)
-abline(lm(y ~ x), col = "blue")
-abline(0,1,col = "black",lty=2)
-mtext("C", side = 3, adj = 0, line = 1.5, cex = 1.2, font = 2)
-
-#6
-x=twistdat$Mean.Length.Mapped.Reads
-y=mybaitsdat$Mean.Length.Mapped.Reads
-plot(x=twistdat$Mean.Length.Mapped.Reads, y=mybaitsdat$Mean.Length.Mapped.Reads,main = "Mean length of deduplicate\n mapped reads (bp)",
-     xlab = "Twist", ylab = "myBaits", pch = 19, frame = FALSE, xlim=c(0,70), ylim=c(0,70), cex.lab = 1.4, cex.axis=1.3)
-abline(lm(y ~ x), col = "blue")
-abline(0,1,col = "black",lty=2)
-mtext("G", side = 3, adj = 0, line = 1.5, cex = 1.2, font = 2)
-
-#7 D
-x=twistdat$MT.to.Nuclear.Ratio
-y=mybaitsdat$MT.to.Nuclear.Ratio
-plot(x=twistdat$MT.to.Nuclear.Ratio, y=mybaitsdat$MT.to.Nuclear.Ratio,main = "MT to Nuclear Ratio\n (coverage)",
-     xlab = "Twist", ylab = "myBaits", pch = 19, frame = FALSE, xlim=c(0,100), ylim=c(0,100), cex.lab = 1.4, cex.axis=1.3)
-abline(lm(y ~ x), col = "blue")
-abline(0,1,col = "black",lty=2)
-mtext("D", side = 3, adj = 0, line = 1.5, cex = 1.2, font = 2)
-
-#8
-x=twistdat$X5.Prime.C.T.1st.base.on.target.104k_80bpdedup
-y=mybaitsdat$X5.Prime.C.T.1st.base.on.target.104k_80bpdedup
-plot(x=twistdat$X5.Prime.C.T.1st.base.on.target.104k_80bpdedup, y=mybaitsdat$X5.Prime.C.T.1st.base.on.target.104k_80bpdedup,main = "C-T subst on 1st bp of\n on-target reads (%)",
-     xlab = "Twist", ylab = "myBaits", pch = 19, frame = FALSE, xlim=c(0,60), ylim=c(0,60), cex.lab = 1.4, cex.axis=1.3)
-abline(lm(y ~ x), col = "blue")
-abline(0,1,col = "black",lty=2)
-mtext("H", side = 3, adj = 0, line = 1.5, cex = 1.2, font = 2)
-
-dev.off() #saved 14x7
-
-##### Figure 3 Boxplot #####
 count_80foldcov1 <- dat1 %>%
-  filter( at.least.1X.of.target.104k.SNPsite.... > 79) %>% 
+  filter(at_least_1X_of_target_104k_SNPsite_incdup*100 > 79) %>% 
   group_by(Method) %>% 
   summarize(count_above_80 = n())
 count_80foldcov2 <- dat1 %>%
-  filter( at.least.2X.of.target.104k.SNPsite.... > 79) %>% 
+  filter(at_least_2X_of_target_104k_SNPsite_incdup*100 > 79) %>% 
   group_by(Method) %>% 
   summarize(count_above_80 = n())
 count_80foldcov3 <- dat1 %>%
-  filter( at.least.3X.of.target.104k.SNPsite.... > 79) %>% 
+  filter(at_least_3X_of_target_104k_SNPsite_incdup*100 > 79) %>% 
   group_by(Method) %>% 
   summarize(count_above_80 = n())
 count_80foldcov4 <- dat1 %>%
-  filter( at.least.4X.of.target.104k.SNPsite.... > 79) %>% 
+  filter(at_least_4X_of_target_104k_SNPsite_incdup*100 > 79) %>% 
   group_by(Method) %>% 
   summarize(count_above_80 = n())
 
-p1<- ggplot(dat1, aes(x = Method, y =  at.least.1X.of.target.104k.SNPsite...., fill = Method)) +
-  geom_violin(trim = FALSE, alpha = 0.5, show.legend = FALSE) +
-  geom_boxplot(width=0.05, alpha = 0.1, show.legend = FALSE) +
+q1<- ggplot(dat1, aes(x = Method, y =  at_least_1X_of_target_104k_SNPsite_incdup*100, fill = Method)) +
+  geom_violin(trim = TRUE, alpha = 0.6, show.legend = FALSE) +
+  geom_boxplot(width=0.05, alpha = 0.8, show.legend = FALSE) +
   geom_signif(comparisons = list(c("myBaits", "Twist")),map_signif_level = c("***"=0.001, "**"=0.01, "*"=0.05),tip_length = 0,y_position=0.7) +
-  geom_point(position = position_jitter(width = 0.2), size = 0.8, alpha = 0.6, show.legend = FALSE) +
+  geom_point(position = position_jitter(width = 0.1), size = 0.8, show.legend = FALSE) +
   labs(title="At least 1X coverage",y = "Percentage of target SNPs (%)", x="") +
   coord_cartesian(ylim = c(0, 100)) +
   geom_text(data = count_80foldcov1, aes(x=Method,y = 80, label = c(paste("N = ",count_80foldcov1[1,2],sep=""), paste("N = ",count_80foldcov1[2,2],sep=""))), 
-            vjust = -0.5, hjust=1.2, size = 4, color = "black") +
+            vjust = -0.5, hjust=1.5, size = 3, color = "black") +
+  geom_text_repel(data = dat1%>%filter(Sample %in%  c("KCZ016", "KCZ004")), aes(x=Method,y = at_least_1X_of_target_104k_SNPsite_incdup*100, label = Sample),hjust=-0.1, size = 2) +
   geom_hline(yintercept = 80, linetype = "dashed", color = "black") +
   scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) + 
+  scale_fill_manual(values = c("myBaits" = "#E69F00", "Twist" = "#0072B2")) +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
 
-p2<- ggplot(dat1, aes(x = Method, y =  at.least.2X.of.target.104k.SNPsite...., fill = Method)) +
-  geom_violin(trim = FALSE, alpha = 0.5, show.legend = FALSE) +
-  geom_boxplot(width=0.05, alpha = 0.1, show.legend = FALSE) +
+q2<- ggplot(dat1, aes(x = Method, y =  at_least_2X_of_target_104k_SNPsite_incdup*100, fill = Method)) +
+  geom_violin(trim = TRUE, alpha = 0.6, show.legend = FALSE) +
+  geom_boxplot(width=0.05, alpha = 0.8, show.legend = FALSE) +
   geom_signif(comparisons = list(c("myBaits", "Twist")),map_signif_level = c("***"=0.001, "**"=0.01, "*"=0.05),tip_length = 0,y_position=0.7) +
-  geom_point(position = position_jitter(width = 0.2), size = 0.8, alpha = 0.6, show.legend = FALSE) + 
+  geom_point(position = position_jitter(width = 0.1),size = 0.8, show.legend = FALSE) + 
   labs(title="At least 2X coverage",y = "", x="") +
   geom_text(data = count_80foldcov2, aes(x=Method,y = 80, label = c(paste("N = ",count_80foldcov2[1,2],sep=""), paste("N = ",count_80foldcov2[2,2],sep=""))), 
-            vjust = -0.5, hjust=1.2, size = 4, color = "black") +
+            vjust = -0.5, hjust=1.5, size = 3, color = "black") +
+  geom_text_repel(data = dat1%>%filter(Sample %in%  c("KCZ016", "KCZ004")), aes(x=Method,y = at_least_2X_of_target_104k_SNPsite_incdup*100, label = Sample),hjust=-0.1, size = 2) +
   geom_hline(yintercept = 80, linetype = "dashed", color = "black") +
   scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) + 
+  scale_fill_manual(values = c("myBaits" = "#E69F00", "Twist" = "#0072B2")) +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
 
-p3<- ggplot(dat1, aes(x = Method, y =  at.least.3X.of.target.104k.SNPsite...., fill = Method)) +
-  geom_violin(trim = FALSE, alpha = 0.5, show.legend = FALSE) +
-  geom_boxplot(width=0.05, alpha = 0.1, show.legend = FALSE) +
+q3<- ggplot(dat1, aes(x = Method, y =  at_least_3X_of_target_104k_SNPsite_incdup*100, fill = Method)) +
+  geom_violin(trim = TRUE, alpha = 0.6, show.legend = FALSE) +
+  geom_boxplot(width=0.05, alpha = 0.8, show.legend = FALSE) +
   geom_signif(comparisons = list(c("myBaits", "Twist")),map_signif_level = c("***"=0.001, "**"=0.01, "*"=0.05),tip_length = 0,y_position=0.7) +
-  geom_point(position = position_jitter(width = 0.2), size = 0.8, alpha = 0.6, show.legend = FALSE) +  # Add jittered points
-  labs(title="At least 3X coverage",y = "Percentage of target SNPs (%)", x="") +
+  geom_point(position = position_jitter(width = 0.1),size = 0.8, show.legend = FALSE) +  
+  labs(title="At least 3X coverage",y = "", x="") +
   geom_text(data = count_80foldcov3, aes(x=Method,y = 80, label = c(paste("N = ",count_80foldcov3[1,2],sep=""), paste("N = ",count_80foldcov3[2,2],sep=""))), 
-            vjust = -0.5, hjust=1.2, size = 4, color = "black") +
+            vjust = -0.5, hjust=1.5, size = 3, color = "black") +
+  geom_text_repel(data = dat1%>%filter(Sample %in%  c("KCZ016", "KCZ004")), aes(x=Method,y = at_least_3X_of_target_104k_SNPsite_incdup*100, label = Sample),hjust=-0.1, size = 2) +
   geom_hline(yintercept = 80, linetype = "dashed", color = "black") +
   scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) + 
+  scale_fill_manual(values = c("myBaits" = "#E69F00", "Twist" = "#0072B2")) +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
 
-p4<- ggplot(dat1, aes(x = Method, y =  at.least.4X.of.target.104k.SNPsite...., fill = Method)) +
-  geom_violin(trim = FALSE, alpha = 0.5, show.legend = FALSE) +
-  geom_boxplot(width=0.05, alpha = 0.1, show.legend = FALSE) +
+q4 <- ggplot(dat1, aes(x = Method, y =  at_least_4X_of_target_104k_SNPsite_incdup*100, fill = Method)) +
+  geom_violin(trim = TRUE, alpha = 0.6, show.legend = FALSE) +
+  geom_boxplot(width=0.05, alpha = 0.8, show.legend = FALSE) +
   geom_signif(comparisons = list(c("myBaits", "Twist")),map_signif_level = c("***"=0.001, "**"=0.01, "*"=0.05),tip_length = 0,y_position=0.7) +
-  geom_point(position = position_jitter(width = 0.2), size = 0.8, alpha = 0.6, show.legend = FALSE) +  # Add jittered points
+  geom_point(position = position_jitter(width = 0.1),size = 0.8, show.legend = FALSE) +  # Add jittered points
   labs(title="At least 4X coverage",y = "", x="") +
   geom_text(data = count_80foldcov4, aes(x=Method,y = 80, label = c(paste("N = ",count_80foldcov4[1,2],sep=""), paste("N = ",count_80foldcov4[2,2],sep=""))), 
-            vjust = -0.5, hjust=1.2, size = 4, color = "black") +
+            vjust = -0.5, hjust=1.5, size = 3, color = "black") +
+  geom_text_repel(data = dat1%>%filter(Sample %in%  c("KCZ016", "KCZ004")), aes(x=Method,y = at_least_4X_of_target_104k_SNPsite_incdup*100, label = Sample),hjust=-0.1, size = 2) +
   geom_hline(yintercept = 80, linetype = "dashed", color = "black") +
   scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) + 
+  scale_fill_manual(values = c("myBaits" = "#E69F00", "Twist" = "#0072B2")) +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
 
-grid.arrange(p1,p2,p3,p4, nrow=2) #saved 6x6
+row1 <- p7 + p5 + p6 + plot_layout(guides = 'collect', widths = c(1, 1, 1))
+row2 <- q1 + q2 + q3 + plot_layout(guides = 'collect', widths = c(1,1,1))
+row1 / row2 + plot_annotation(tag_levels = 'A') & theme(plot.margin = unit(c(1, 1, 1, 1), "pt"),legend.position = "bottom") #8x5
 
-##### Supplementary figures SNP coverage distribution from samtools depth #####
+# Supplementary figure: SNP coverage distribution from samtools depth -------------------
 library(purrr)
 mybaitscov <- read.delim("coverage_104k_mybaits.txt",header=FALSE, sep="\t") 
 twistcov <- read.delim("coverage_104k_twist.txt",header=FALSE, sep="\t") 
-popbaits <- read.table("/Users/chyiyin/Dropbox/CORVID_baits/Analyses/angsd/popbaits.txt", sep="\t", header=TRUE) 
+popbaits <- read.table("~/Dropbox/CORVID_baits/Analyses/angsd/popbaits.txt", sep="\t", header=TRUE) 
 popbaits_selected <- popbaits %>% 
   filter(Country %in% c("PL","B")) %>%
   filter(Samples != "DVT016" & Samples != "DVT022" & Samples != "KZR002")
@@ -196,7 +474,7 @@ plot_list <- list()
 for (type in c("mybaitscov", "twistcov")) {
   for (i in popbaits$Samples) {
     if (i %in% names(get(type))) {
-      fill_color <- ifelse(type == "mybaitscov", "#F8766D", "#00BFC4")
+      fill_color <- ifelse(type == "mybaitscov", "#E69F00", "#0072B2")
       plot <- ggplot(data=get(type), aes_string(x = i)) +
         geom_histogram(binwidth=1, fill = fill_color, color = "black") +
         labs(title = i, x = "Coverage", y = "No. of SNP sites") +
@@ -213,12 +491,13 @@ for (type in c("mybaitscov", "twistcov")) {
     } else {
       warning(paste("Column", i, "not found in mybaitscov"))
     } } 
-  pdf(file=paste("coverage_distribution_104k_",type,"_selected",sep=""))
+  pdf(file=paste("coverage_distribution_104k_",type,"_selected_updated",sep=""))
   grid.arrange(grobs=plot_list[popbaits_selected$Samples], ncol=4)
   dev.off()
 }
 
-#### Figure 4 normalized coverage across GC content ####
+# Figure 4: Enrichment across varying GC bins ----------------------------------------------------------------------------
+# Figure 4a normalized coverage across GC content ------------------------------------------------------------------------
 mybaitsgc <- read.delim("./gc/GC_coverage_summary_mybaits.txt",header=TRUE, sep="\t") 
 twistgc <- read.delim("./gc/GC_coverage_summary_twist.txt",header=TRUE, sep="\t") 
 names(mybaitsgc) <- gsub("_mybaits", "", names(mybaitsgc))
@@ -238,433 +517,152 @@ gccov <- ggplot(merged_gc, aes(x = GC, y = y, color = Method)) +
   geom_point(size = 0.5,alpha=0.4) +  
   geom_smooth(method = "gam", se = TRUE) +
   scale_x_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 5)) +
-  scale_color_manual(values = c("#F8766D", "#00BFC4"), name = "Method", labels = c("myBaits", "Twist")) +
+  scale_color_manual(values = c("#E69F00", "#0072B2"), name = "Method", labels = c("myBaits", "Twist")) +
   labs(title = "",x = "GC content",y = "Normalized coverage") +
   theme_minimal() +
   theme(legend.position = c(0.9, 0.8),
-        legend.title = element_text(size = 12),
+        legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
 
-#### Figure 4 Boxplot for GC / AT dropout ####
+# Figure 4b-c Boxplot for GC / AT dropout ----------------------------------------------------------------------------
 dropout <- read.delim("./gc/GC_AT_dropout_summary.txt",header=TRUE, sep="\t") 
 dropout_selected <- dropout %>% separate(col=Sample,into=c("Sample","Method"),sep="_") %>%  
   mutate(Method=recode(Method, "TE"="Twist", "mybaits"="myBaits")) %>%
   filter(Sample %in% popbaits_selected$Samples) 
 
 drop1<- ggplot(dropout_selected, aes(x = Method, y = GC_Dropout, fill = Method)) +
-  geom_violin(trim = FALSE, alpha = 0.5, show.legend = FALSE) +
-  geom_boxplot(width=0.05, alpha = 0.1, show.legend = FALSE) +
+  geom_violin(trim = FALSE, alpha = 0.8, show.legend = FALSE) +
+  geom_boxplot(width=0.05, alpha = 0.6, show.legend = FALSE) +
   geom_signif(comparisons = list(c("myBaits", "Twist")),map_signif_level = c("***"=0.001, "**"=0.01, "*"=0.05),tip_length = 0,y_position=1) +
-  geom_point(position = position_jitter(width = 0.2), size = 0.8, alpha = 0.6, show.legend = FALSE) + 
+  geom_point(position = position_jitter(width = 0.2), size = 0.8, show.legend = FALSE) + 
+  scale_fill_manual(values = c("myBaits" = "#E69F00", "Twist" = "#0072B2")) +
   labs(title="GC dropout",y = "", x="") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+
 drop2<- ggplot(dropout_selected, aes(x = Method, y = AT_Dropout, fill = Method)) +
-  geom_violin(trim = FALSE, alpha = 0.5, show.legend = FALSE) +
-  geom_boxplot(width=0.05, alpha = 0.1, show.legend = FALSE) +
+  geom_violin(trim = FALSE, alpha = 0.6, show.legend = FALSE) +
+  geom_boxplot(width=0.05, alpha = 0.8, show.legend = FALSE) +
   geom_signif(comparisons = list(c("myBaits", "Twist")),tip_length = 0, y_position=25,map_signif_level = c("***"=0.001, "**"=0.01, "*"=0.05)) +
-  geom_point(position = position_jitter(width = 0.2), size = 0.8, alpha = 0.6, show.legend = FALSE) + 
+  geom_point(position = position_jitter(width = 0.2), size = 0.8, show.legend = FALSE) + 
+  scale_fill_manual(values = c("myBaits" = "#E69F00", "Twist" = "#0072B2")) +
   labs(title="AT dropout",y = "", x="") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
-grid.arrange(gccov, arrangeGrob(drop2,drop1, ncol=2)) #saved 8x8
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
 
-##### Figure 5 SNP quality #####
-dat1 = dat %>% group_by(Country) %>% arrange(desc(Age), .by_group = FALSE) %>% 
-  filter(Country %in% c("PL","B")) %>%
-  filter(Sample.Name != "DVT016" & Sample.Name != "DVT022" & Sample.Name != "KZR002")
-twistdat = dat1 %>% filter(Method == "Twist") 
-mybaitsdat = dat1 %>% filter(Method == "myBaits")
-scale_factor <- max(dat1$X5.Prime.C.T.1st.base.on.target.104k_80bpdedup) / max(dat1$Age,na.rm=TRUE)
-p5 <- ggplot(data=dat1,aes(x=Sample.Name,y=X5.Prime.C.T.1st.base.on.target.104k_80bpdedup, fill=Method)) + 
+row1 <- gccov + plot_layout(guides = 'collect', widths = c(2))
+row2 <- drop1 + drop2 + plot_layout(guides = 'collect', widths = c(1,1))
+row1 / row2 + plot_annotation(tag_levels = 'A') & theme(plot.margin = unit(c(1, 1, 1, 1), "pt"),legend.position = "top")
+
+# Figure 5 SNP quality ----------------------------------------------------------------------------------------------------------------
+# (A) Deamination (C-T substitutions on first bp) -----------------------------------------------------------------------------------------
+scale_factor <- max(dat1$X5_Prime_C.T_1st_base_on.target_104k_80bp_dedup) / max(dat1$Age,na.rm=TRUE)
+deam <- ggplot(data=dat1,aes(x=Sample,y=X5_Prime_C.T_1st_base_on.target_104k_80bp_dedup, fill=Method)) + 
   geom_bar(stat="identity",position="dodge") + 
-  geom_line(aes(x=Sample.Name,y=Age* scale_factor, group = 1), color = "black", size = 0.8, linetype="dashed") +
-  scale_y_continuous(name = "C-T subst on 1st bp of on-target reads (%)", sec.axis = sec_axis(~ . / scale_factor, name = "Age (years ago)")) +  # Secondary axis for the rate) +
-  theme_bw() +
-  theme(axis.text.x = element_text(face="bold", angle=90)) +
-  scale_x_discrete(limits=mybaitsdat$Sample.Name) +
-  theme(axis.title.x=element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        legend.position = c(0.9, 0.7),
-        legend.title = element_text(size = 12),
-        legend.text = element_text(size = 10))
+  geom_line(aes(x=Sample,y=Age* scale_factor, group = 1), color = "black", size = 0.8, linetype="dashed") +
+  scale_y_continuous(name = "C-T substitutions (%)", sec.axis = sec_axis(~ . / scale_factor, name = "Sample age (ya)")) +  # Secondary axis for the rate) +
+  theme_bw() + scale_fill_manual(values = c("myBaits" = "#E69F00", "Twist" = "#0072B2")) +
+  scale_x_discrete(limits=mybaitsdat$Sample) +
+  theme(axis.text.y.right = element_text(angle = 270, vjust = 0.5),
+    axis.title.x=element_blank(),
+    axis.text.x = element_text(face="bold", angle=90),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.position = c(0.9, 0.7),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10))
 
-##### SNP mismatch #####
+# SNP number and accuracy -------------------------------------------------------------------------------------------------
+###### the filter for snpcalling on angsd is -minMapQ 20 -minQ 20 and also dp>=3 for geno calling ------------------------------
+# (B) SNPs are counted as present as long as there is genotype info, which can be homozygous or heterozygous --------------
+# (C) Using shotgun as the baseline, as long as one of the two alleles overlap with shotgun, the site is a match ----------
 setwd("/Users/chyiyin/Dropbox/CORVID_baits/Analyses/angsd") 
-twistsnp <- read.table(gzfile("twist_104kpanel_hapconsensus_maxmis_q20.haplo.gz"), sep = "\t", header=TRUE) #76303
-mybaitssnp <- read.table(gzfile("mybaits_104kpanel_hapconsensus_maxmis_q20.haplo.gz"), sep = "\t", header=TRUE) #73038
-shotgunsnp <- read.table(gzfile("shotgun_noudg_104kpanel_hapconsensus_maxmis_q20.haplo.gz"), sep = "\t", header=TRUE) #42353
+mybaitsgeno <- read.table(gzfile("mybaits_104kpanel_geno_maxmis_q20_dp3.geno.gz"), sep = "\t", header=FALSE) #104K with Ns
+twistgeno <- read.table(gzfile("twist_104kpanel_geno_maxmis_q20_dp3.geno.gz"), sep = "\t", header=FALSE) #104K with Ns
 shotgungeno <- read.table(gzfile("shotgun_noudg_104kpanel_geno_maxmis_q20_dp3.geno.gz"), sep = "\t", header=FALSE) #104K with Ns
-shotgungeno <- shotgungeno[-15]
-# the filter for snpcalling on angsd is -minMapQ 20 -minQ 20 and also dp>=3 for geno calling
+popshotgun_selected <- read.table("popshotgun_selected.txt", sep="\t", header=TRUE) 
+twistgeno <- twistgeno[ , -ncol(twistgeno)]
+mybaitsgeno <- mybaitsgeno[ , -ncol(mybaitsgeno)]
 
-popbaits <- read.table("popbaits.txt", sep="\t", header=TRUE) 
-popbaits_selected <- popbaits %>% 
-  filter(Country %in% c("PL","B")) %>%
-  filter(Samples != "DVT016" & Samples != "DVT022" & Samples != "KZR002")
-popshotgun <- read.table("popshotgun.txt", sep="\t", header=TRUE) 
-popshotgun_selected <- popshotgun %>%
-  filter(Country %in% c("PL","B")) %>%
-  filter(Samples != "DVT016" & Samples != "DVT022" & Samples != "KZR002")
+colnames(twistgeno) <-  c("chr","pos",popshotgun_selected$Samples)
+colnames(mybaitsgeno) <-  c("chr","pos",popshotgun_selected$Samples)
+colnames(shotgungeno) <-  c("chr","pos",popshotgun_selected$Samples)
 
-colnames(twistsnp) <-  c("chr","pos","major",popbaits$Samples)
-colnames(mybaitssnp) <-  c("chr","pos","major",popbaits$Samples)
-colnames(shotgunsnp) <-  c("chr","pos","major",popshotgun$Samples)
-colnames(shotgungeno) <-  c("chr","pos",popshotgun$Samples)
-
-twistsnp <- twistsnp %>% mutate(scaff_name=paste(chr,pos,sep="_")) %>% 
+twistgeno <- twistgeno %>% mutate(scaff_name=paste(chr,pos,sep="_")) %>% 
   column_to_rownames(var = "scaff_name") %>%
-  mutate(across(everything(), ~ ifelse(. == "N", NA, .))) %>%
-  select(popbaits_selected$Samples)
-mybaitssnp <- mybaitssnp %>% mutate(scaff_name=paste(chr,pos,sep="_"))  %>% 
+  mutate(across(everything(), ~ ifelse(. == "N", NA, .))) 
+mybaitsgeno <- mybaitsgeno %>% mutate(scaff_name=paste(chr,pos,sep="_"))  %>% 
   column_to_rownames(var = "scaff_name") %>%
-  mutate(across(everything(), ~ ifelse(. == "N", NA, .))) %>%
-  select(popbaits_selected$Samples)
-shotgunsnp <- shotgunsnp %>% mutate(scaff_name=paste(chr,pos,sep="_"))  %>% 
-  column_to_rownames(var = "scaff_name") %>%
-  mutate(across(everything(), ~ ifelse(. == "N", NA, .))) %>%
-  select(popshotgun_selected$Samples)
+  mutate(across(everything(), ~ ifelse(. == "N", NA, .))) 
 shotgungeno <- shotgungeno %>% mutate(scaff_name=paste(chr,pos,sep="_"))  %>% 
   column_to_rownames(var = "scaff_name") %>%
-  mutate(across(everything(), ~ ifelse(. == "NN", NA, .))) %>%
-  select(popshotgun_selected$Samples)
+  mutate(across(everything(), ~ ifelse(. == "NN", NA, .))) 
 
-# Venn diagram
-set1 <- rownames(mybaitssnp)
-set2 <- rownames(twistsnp)
-set3 <- rownames(shotgunsnp)
-venn.plot <- venn.diagram(x = list("myBaits"=set1, "Twist"=set2, "shotgun"=set3),
-                          category.names = c("myBaits", "Twist", "shotgun"),
-                          filename = NULL,  # To display in R instead of saving as a file
-                          margin = 0.05,
-                          output = TRUE,
-                          fill = c("#F8766D", "#00BFC4", "orange"),
-                          alpha = 0.5,
-                          cex = 1,
-                          cat.fontfamily = "sans",
-                          fontfamily = "sans",
-                          fontface = "bold",
-                          cat.fontface = "bold")
-
-
-# Subset both files to only common rows and other filters
-common_rows <- intersect(rownames(mybaitssnp), rownames(twistsnp)) #67681
-twistsnp_common <- twistsnp[common_rows, ] 
-mybaitssnp_common <- mybaitssnp[common_rows, ] 
-if (!all(dim(twistsnp_common) == dim(mybaitssnp_common))) {
-  stop("The files do not have the same number of common rows and columns.")
+samples <- c("BRW001", "DVT014", "NCP002", "VKP001")
+lenient_match <- function(geno1, geno2) {
+  if (is.na(geno1) | is.na(geno2)) return(FALSE)
+  alleles1 <- strsplit(geno1, "")[[1]]
+  alleles2 <- strsplit(geno2, "")[[1]]
+  return(any(alleles1 %in% alleles2))
 }
 
-# Compare values in common rows
-differences <- twistsnp_common != mybaitssnp_common  # This creates a logical matrix of TRUE/FALSE
-diff_rows <- rowSums(differences, na.rm = TRUE) > 0  # Identify rows with at least one difference
-mismatch_counts <- sort(colSums(differences, na.rm = TRUE), decreasing=TRUE)
-
-# Check against shotgun geno
-mismatchresults <- data.frame(Sample=popshotgun_selected$Samples,myBaits_match_shotgun=1,Twist_match_shotgun=2,het_geno=3,myBaits_match_shotgun_per=4,Twist_match_shotgun_per=5,different_allele_per=6)
-for (i in 1:length(popshotgun_selected$Samples)) {
-  sample_name <- popshotgun_selected$Samples[i] 
-  mismatched_rows <- which(differences[,sample_name], arr.ind = TRUE)
-  mismatched_row_names <- rownames(differences)[mismatched_rows]
+venn_plots <- list()
+accuracy_results <- data.frame(Sample = character(), Method = character(), Accuracy = numeric())
+for (sample in samples) {
+  twist_sites <- rownames(twistgeno)[!is.na(twistgeno[[sample]])]
+  mybaits_sites <- rownames(mybaitsgeno)[!is.na(mybaitsgeno[[sample]])]
+  shotgun_sites <- rownames(shotgungeno)[!is.na(shotgungeno[[sample]])]
   
-  # Check against shotgun
-  check_shotgun <- intersect(mismatched_row_names, rownames(shotgungeno))
-  twist2 <- twistsnp_common[check_shotgun,] %>%
-    select(sample_name)
-  mybaits2 <- mybaitssnp_common[check_shotgun,] %>%
-    select(sample_name)
-  geno <- shotgungeno[check_shotgun,] %>%
-    select(sample_name)
-  twist2 <- tibble::rownames_to_column(twist2, var = "rowname")
-  mybaits2 <- tibble::rownames_to_column(mybaits2, var = "rowname")
-  geno <- tibble::rownames_to_column(geno, var = "rowname")
-  geno2 <- geno %>% separate(sample_name, into =c("allele1","allele2"),sep=1) %>%
-    mutate(het=(allele1!=allele2)*1)
-  het <- sum(geno2$het, na.rm = TRUE)/sum(!is.na(geno2$het))*100
+  venn_data <- list(Twist = twist_sites, myBaits = mybaits_sites, Shotgun = shotgun_sites)
+  total_unique <- length(unique(unlist(venn_data)))
+  venn_plot <- ggvenn(venn_data, text_size=3,show_percentage = TRUE,
+    fill_color = c("#0072B2","#E69F00","darkseagreen3"), fill_alpha=0.8, stroke_size = 0.1, set_name_size = 0) +
+    labs(title = paste(sample," n=",total_unique,sep="")) +
+    theme_minimal()+theme_void()+
+    theme(plot.title = element_text(size = 8, face = "bold", hjust = 0.5, margin = margin(b = -100)),  # ↓ Reduce bottom margin of title
+          plot.margin = margin(t = -10, r = -10, b = -10, l = -10))
+  venn_plots[[sample]] <- venn_plot
   
-  merged_df <- mybaits2 %>%
-    full_join(twist2, by = "rowname") %>%
-    full_join(geno2, by="rowname")
-  colnames(merged_df) <- c("rowname","myBaits","Twist","shotgun_allele1", "shotgun_allele2", "het")
+  overlap_twist <- Reduce(intersect,list(twist_sites, shotgun_sites, mybaits_sites))
+  if (length(overlap_twist) > 0) {
+    matches_twist <- mapply(lenient_match,
+                            twistgeno[overlap_twist, sample],
+                            shotgungeno[overlap_twist, sample])
+    accuracy_twist <- sum(matches_twist) / length(matches_twist)
+    accuracy_results <- rbind(accuracy_results, data.frame(Sample = sample, Method = "Twist", Accuracy = accuracy_twist,Overlap_Count=length(overlap_twist)))
+  }
   
-  mybaits_match_shotgun <- sum(merged_df$myBaits == merged_df$shotgun_allele1 | merged_df$myBaits == merged_df$shotgun_allele2, na.rm=TRUE) 
-  mismatchresults[i,2] <- mybaits_match_shotgun
-  twist_match_shotgun <- sum(merged_df$Twist == merged_df$shotgun_allele1 | merged_df$Twist == merged_df$shotgun_allele2, na.rm=TRUE) 
-  mismatchresults[i,3] <- twist_match_shotgun
-  mismatchresults[i,4] <- het
-  mismatchresults[i,5] <- mybaits_match_shotgun / merged_df%>% drop_na() %>% nrow() * 100
-  twist_match_shotgun <- sum(merged_df$Twist == merged_df$shotgun_allele1 | merged_df$Twist == merged_df$shotgun_allele2, na.rm=TRUE) 
-  mismatchresults[i,6] <- twist_match_shotgun / merged_df%>% drop_na() %>% nrow() * 100
-  mismatchresults[i,7] <- sum(merged_df$shotgun_allele1 != merged_df$myBaits & merged_df$shotgun_allele2 != merged_df$myBaits & merged_df$shotgun_allele1 != merged_df$Twist & merged_df$shotgun_allele2 != merged_df$Twist, na.rm=TRUE) /  merged_df%>% drop_na() %>% nrow() *100
+  overlap_mybaits <- Reduce(intersect,list(mybaits_sites, shotgun_sites, twist_sites))
+  if (length(overlap_mybaits) > 0) {
+    matches_mybaits <- mapply(lenient_match,
+                              mybaitsgeno[overlap_mybaits, sample],
+                              shotgungeno[overlap_mybaits, sample])
+    accuracy_mybaits <- sum(matches_mybaits) / length(matches_mybaits)
+    accuracy_results <- rbind(accuracy_results,
+                              data.frame(Sample = sample, Method = "myBaits", Accuracy = accuracy_mybaits,Overlap_Count=length(overlap_mybaits)))
+  }
 }
 
-mismatchresults2 <- melt(as.data.table(mismatchresults), id.vars=c(1,2,3,4), variable.name="Method", value.name="Matches to shotgun (%)")
-m1 <- ggplot(data=mismatchresults2,aes(x=Sample,y=`Matches to shotgun (%)`, fill=Method)) + 
-  geom_bar(stat="identity",position="dodge",show.legend = TRUE) + 
-  geom_text(aes(label = format(`Matches to shotgun (%)`,digits=1,scientific=FALSE)),position = position_dodge(width = 0.9), vjust = -0.3, size=3) +
-  geom_text(aes(y = -max(`Matches to shotgun (%)`)*0.05,label = paste("het=",format(het_geno,digits=3,scientific=FALSE),"%",sep="")),size=3.5) +
-  theme_bw() +
-  scale_fill_manual(values = c("#F8766D", "#00BFC4", "orange"), name = "Method", labels = c("myBaits", "Twist","No match")) +
-  theme(legend.position="bottom") +
-  theme(axis.text.x = element_text(face="bold")) +
-  theme(axis.title.x=element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank()) 
+accuracy_results <- accuracy_results %>%
+  mutate(Accuracy_Percent = round(Accuracy * 100, 2)) %>%
+  mutate(Sample = factor(Sample, levels = c("BRW001", "VKP001", "DVT014", "NCP002")))
+accuracy_plot <- ggplot(accuracy_results, aes(x = Sample, y = Accuracy_Percent, fill = Method)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  geom_text(aes(label = sprintf("%.1f", Accuracy_Percent)), position = position_dodge(width = 0.9), vjust = 1.2, size = 3) +
+  geom_text(data=accuracy_results%>%filter(Method == "myBaits"), aes(x=Sample, y=0, label = Overlap_Count), vjust = 0.5, size = 3) + 
+  scale_fill_manual(values = c("myBaits" = "#E69F00", "Twist" = "#0072B2","Shotgun"="darkseagreen3")) +
+  labs(y = "Genotype accuracy (%)", x = "Sample") +
+  theme_minimal() +theme(legend.position = "none",axis.title.x=element_blank(),panel.grid.minor = element_blank())
 
-grid.arrange(p5,arrangeGrob(venn.plot, m1, ncol = 2))
+venn_all <- venn_plots[[samples[1]]] + venn_plots[[samples[4]]] + venn_plots[[samples[2]]] + venn_plots[[samples[3]]] + plot_layout(guides = 'collect', widths = c(1, 1,1,1))
+fig5 <- deam / venn_all / accuracy_plot + plot_layout(height = c(1,1,1)) + plot_annotation(tag_levels = 'A') & theme(plot.margin = unit(c(1, 1, 1, 1), "pt")) #7x6
 
-##### pseudohaploid genotype for allele bias #####
-## BRW001 ##
-ac <- shotgungeno %>% select(BRW001) %>%
-  filter(BRW001 == "AC" | BRW001 == "CA") 
-ag <- shotgungeno %>% select(BRW001) %>%
-  filter(BRW001 == "AG" | BRW001 == "GA") 
-at <- shotgungeno %>% select(BRW001) %>%
-  filter(BRW001 == "AT" | BRW001 == "TA")  
-cg <- shotgungeno %>% select(BRW001) %>%
-  filter(BRW001 == "CG" | BRW001 == "GC") 
-ct <- shotgungeno %>% select(BRW001) %>%
-  filter(BRW001 == "CT" | BRW001 == "TC") 
-gt <- shotgungeno %>% select(BRW001) %>%
-  filter(BRW001 == "GT" | BRW001 == "TG")  
-het_brw001 <- rbind(ac,ag,at,cg,ct,gt)
-
-#mybaits
-genotype_counts <- list(
-  AC = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$BRW001 == "A", na.rm = TRUE),
-         C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$BRW001 == "C", na.rm = TRUE)),
-  AG = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$BRW001 == "A", na.rm = TRUE),
-         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$BRW001 == "G", na.rm = TRUE)),
-  AT = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$BRW001 == "A", na.rm = TRUE),
-         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$BRW001 == "T", na.rm = TRUE)),
-  CG = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$BRW001 == "C", na.rm = TRUE),
-         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$BRW001 == "G", na.rm = TRUE)),
-  CT = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$BRW001 == "C", na.rm = TRUE),
-         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$BRW001 == "T", na.rm = TRUE)),
-  GT = c(G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$BRW001 == "G", na.rm = TRUE),
-         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$BRW001 == "T", na.rm = TRUE)))
-chi_square_results <- lapply(genotype_counts, function(counts) {
-  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
-})
-p_values <- sapply(chi_square_results, function(x) x$p.value)
-p_adjusted <- p.adjust(p_values, method = "bonferroni")
-print(p_adjusted)
- 
-#twist
-genotype_counts <- list(
-  AC = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$BRW001 == "A", na.rm = TRUE),
-         C = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$BRW001 == "C", na.rm = TRUE)),
-  AG = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$BRW001 == "A", na.rm = TRUE),
-         G = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$BRW001 == "G", na.rm = TRUE)),
-  AT = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$BRW001 == "A", na.rm = TRUE),
-         T = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$BRW001 == "T", na.rm = TRUE)),
-  CG = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$BRW001 == "C", na.rm = TRUE),
-         G = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$BRW001 == "G", na.rm = TRUE)),
-  CT = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$BRW001 == "C", na.rm = TRUE),
-         T = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$BRW001 == "T", na.rm = TRUE)),
-  GT = c(G = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$BRW001 == "G", na.rm = TRUE),
-         T = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$BRW001 == "T", na.rm = TRUE)))
-
-chi_square_results <- lapply(genotype_counts, function(counts) {
-  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
-})
-p_values <- sapply(chi_square_results, function(x) x$p.value)
-p_adjusted <- p.adjust(p_values, method = "bonferroni")
-print(genotype_counts)
-print(p_adjusted)
-
-## DVT014 ##
-ac <- shotgungeno %>% select(DVT014) %>%
-  filter(DVT014 == "AC" | DVT014 == "CA") 
-ag <- shotgungeno %>% select(DVT014) %>%
-  filter(DVT014 == "AG" | DVT014 == "GA") 
-at <- shotgungeno %>% select(DVT014) %>%
-  filter(DVT014 == "AT" | DVT014 == "TA")  
-cg <- shotgungeno %>% select(DVT014) %>%
-  filter(DVT014 == "CG" | DVT014 == "GC") 
-ct <- shotgungeno %>% select(DVT014) %>%
-  filter(DVT014 == "CT" | DVT014 == "TC") 
-gt <- shotgungeno %>% select(DVT014) %>%
-  filter(DVT014 == "GT" | DVT014 == "TG")  
-het_dvt014 <- rbind(ac,ag,at,cg,ct,gt)
-
-#mybaits
-genotype_counts <- list(
-  AC = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$DVT014 == "A", na.rm = TRUE),
-         C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$DVT014 == "C", na.rm = TRUE)),
-  AG = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$DVT014 == "A", na.rm = TRUE),
-         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$DVT014 == "G", na.rm = TRUE)),
-  AT = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$DVT014 == "A", na.rm = TRUE),
-         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$DVT014 == "T", na.rm = TRUE)),
-  CG = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$DVT014 == "C", na.rm = TRUE),
-         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$DVT014 == "G", na.rm = TRUE)),
-  CT = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$DVT014 == "C", na.rm = TRUE),
-         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$DVT014 == "T", na.rm = TRUE)),
-  GT = c(G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$DVT014 == "G", na.rm = TRUE),
-         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$DVT014 == "T", na.rm = TRUE)))
-chi_square_results <- lapply(genotype_counts, function(counts) {
-  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
-})
-p_values <- sapply(chi_square_results, function(x) x$p.value)
-p_adjusted <- p.adjust(p_values, method = "bonferroni")
-print(genotype_counts)
-print(p_adjusted)
-
-#twist
-genotype_counts <- list(
-  AC = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$DVT014 == "A", na.rm = TRUE),
-         C = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$DVT014 == "C", na.rm = TRUE)),
-  AG = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$DVT014 == "A", na.rm = TRUE),
-         G = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$DVT014 == "G", na.rm = TRUE)),
-  AT = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$DVT014 == "A", na.rm = TRUE),
-         T = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$DVT014 == "T", na.rm = TRUE)),
-  CG = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$DVT014 == "C", na.rm = TRUE),
-         G = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$DVT014 == "G", na.rm = TRUE)),
-  CT = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$DVT014 == "C", na.rm = TRUE),
-         T = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$DVT014 == "T", na.rm = TRUE)),
-  GT = c(G = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$DVT014 == "G", na.rm = TRUE),
-         T = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$DVT014 == "T", na.rm = TRUE)))
-
-chi_square_results <- lapply(genotype_counts, function(counts) {
-  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
-})
-p_values <- sapply(chi_square_results, function(x) x$p.value)
-p_adjusted <- p.adjust(p_values, method = "bonferroni")
-print(genotype_counts)
-print(p_adjusted)
-
-## NCP002 ##
-ac <- shotgungeno %>% select(NCP002) %>%
-  filter(NCP002 == "AC" | NCP002 == "CA") 
-ag <- shotgungeno %>% select(NCP002) %>%
-  filter(NCP002 == "AG" | NCP002 == "GA") 
-at <- shotgungeno %>% select(NCP002) %>%
-  filter(NCP002 == "AT" | NCP002 == "TA")  
-cg <- shotgungeno %>% select(NCP002) %>%
-  filter(NCP002 == "CG" | NCP002 == "GC") 
-ct <- shotgungeno %>% select(NCP002) %>%
-  filter(NCP002 == "CT" | NCP002 == "TC") 
-gt <- shotgungeno %>% select(NCP002) %>%
-  filter(NCP002 == "GT" | NCP002 == "TG")  
-het_ncp002 <- rbind(ac,ag,at,cg,ct,gt)
-
-#mybaits
-genotype_counts <- list(
-  AC = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$NCP002 == "A", na.rm = TRUE),
-         C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$NCP002 == "C", na.rm = TRUE)),
-  AG = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$NCP002 == "A", na.rm = TRUE),
-         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$NCP002 == "G", na.rm = TRUE)),
-  AT = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$NCP002 == "A", na.rm = TRUE),
-         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$NCP002 == "T", na.rm = TRUE)),
-  CG = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$NCP002 == "C", na.rm = TRUE),
-         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$NCP002 == "G", na.rm = TRUE)),
-  CT = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$NCP002 == "C", na.rm = TRUE),
-         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$NCP002 == "T", na.rm = TRUE)),
-  GT = c(G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$NCP002 == "G", na.rm = TRUE),
-         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$NCP002 == "T", na.rm = TRUE)))
-chi_square_results <- lapply(genotype_counts, function(counts) {
-  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
-})
-p_values <- sapply(chi_square_results, function(x) x$p.value)
-p_adjusted <- p.adjust(p_values, method = "bonferroni")
-print(genotype_counts)
-print(p_adjusted)
-
-#twist
-genotype_counts <- list(
-  AC = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$NCP002 == "A", na.rm = TRUE),
-         C = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$NCP002 == "C", na.rm = TRUE)),
-  AG = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$NCP002 == "A", na.rm = TRUE),
-         G = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$NCP002 == "G", na.rm = TRUE)),
-  AT = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$NCP002 == "A", na.rm = TRUE),
-         T = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$NCP002 == "T", na.rm = TRUE)),
-  CG = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$NCP002 == "C", na.rm = TRUE),
-         G = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$NCP002 == "G", na.rm = TRUE)),
-  CT = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$NCP002 == "C", na.rm = TRUE),
-         T = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$NCP002 == "T", na.rm = TRUE)),
-  GT = c(G = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$NCP002 == "G", na.rm = TRUE),
-         T = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$NCP002 == "T", na.rm = TRUE)))
-
-chi_square_results <- lapply(genotype_counts, function(counts) {
-  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
-})
-p_values <- sapply(chi_square_results, function(x) x$p.value)
-p_adjusted <- p.adjust(p_values, method = "bonferroni")
-print(genotype_counts)
-print(p_adjusted)
-
-## VKP001 ##
-ac <- shotgungeno %>% select(VKP001) %>%
-  filter(VKP001 == "AC" | VKP001 == "CA") 
-ag <- shotgungeno %>% select(VKP001) %>%
-  filter(VKP001 == "AG" | VKP001 == "GA") 
-at <- shotgungeno %>% select(VKP001) %>%
-  filter(VKP001 == "AT" | VKP001 == "TA")  
-cg <- shotgungeno %>% select(VKP001) %>%
-  filter(VKP001 == "CG" | VKP001 == "GC") 
-ct <- shotgungeno %>% select(VKP001) %>%
-  filter(VKP001 == "CT" | VKP001 == "TC") 
-gt <- shotgungeno %>% select(VKP001) %>%
-  filter(VKP001 == "GT" | VKP001 == "TG")  
-het_vkp001 <- rbind(ac,ag,at,cg,ct,gt)
-
-#mybaits
-genotype_counts <- list(
-  AC = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$VKP001 == "A", na.rm = TRUE),
-         C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ac), ]$VKP001 == "C", na.rm = TRUE)),
-  AG = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$VKP001 == "A", na.rm = TRUE),
-         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ag), ]$VKP001 == "G", na.rm = TRUE)),
-  AT = c(A = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$VKP001 == "A", na.rm = TRUE),
-         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(at), ]$VKP001 == "T", na.rm = TRUE)),
-  CG = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$VKP001 == "C", na.rm = TRUE),
-         G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(cg), ]$VKP001 == "G", na.rm = TRUE)),
-  CT = c(C = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$VKP001 == "C", na.rm = TRUE),
-         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(ct), ]$VKP001 == "T", na.rm = TRUE)),
-  GT = c(G = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$VKP001 == "G", na.rm = TRUE),
-         T = sum(mybaitssnp[rownames(mybaitssnp) %in% rownames(gt), ]$VKP001 == "T", na.rm = TRUE)))
-chi_square_results <- lapply(genotype_counts, function(counts) {
-  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
-})
-p_values <- sapply(chi_square_results, function(x) x$p.value)
-p_adjusted <- p.adjust(p_values, method = "bonferroni")
-print(genotype_counts)
-print(p_adjusted)
-
-#twist
-genotype_counts <- list(
-  AC = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$VKP001 == "A", na.rm = TRUE),
-         C = sum(twistsnp[rownames(twistsnp) %in% rownames(ac), ]$VKP001 == "C", na.rm = TRUE)),
-  AG = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$VKP001 == "A", na.rm = TRUE),
-         G = sum(twistsnp[rownames(twistsnp) %in% rownames(ag), ]$VKP001 == "G", na.rm = TRUE)),
-  AT = c(A = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$VKP001 == "A", na.rm = TRUE),
-         T = sum(twistsnp[rownames(twistsnp) %in% rownames(at), ]$VKP001 == "T", na.rm = TRUE)),
-  CG = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$VKP001 == "C", na.rm = TRUE),
-         G = sum(twistsnp[rownames(twistsnp) %in% rownames(cg), ]$VKP001 == "G", na.rm = TRUE)),
-  CT = c(C = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$VKP001 == "C", na.rm = TRUE),
-         T = sum(twistsnp[rownames(twistsnp) %in% rownames(ct), ]$VKP001 == "T", na.rm = TRUE)),
-  GT = c(G = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$VKP001 == "G", na.rm = TRUE),
-         T = sum(twistsnp[rownames(twistsnp) %in% rownames(gt), ]$VKP001 == "T", na.rm = TRUE)))
-
-chi_square_results <- lapply(genotype_counts, function(counts) {
-  chisq.test(x = counts, p = c(0.5, 0.5))  # Test if the counts for the two alleles are 50:50
-})
-p_values <- sapply(chi_square_results, function(x) x$p.value)
-p_adjusted <- p.adjust(p_values, method = "bonferroni")
-print(genotype_counts)
-print(p_adjusted)
-
-##### Allele depth for allele bias #####
-# Table 1  and Supp figure 3 
-#ind0:BRW001, ind1:DVT014, ind2:NCP002, ind3:VKP001
-mybaitspos <- read.table(gzfile("mybaits_104kpanel_geno_maxmis_q20_dp3.pos.gz"), sep = "\t", header=TRUE)
-twistpos <- read.table(gzfile("twist_104kpanel_geno_maxmis_q20_dp3.pos.gz"), sep = "\t", header=TRUE)
-shotgunpos <- read.table(gzfile("shotgun_noudg_104kpanel_geno_maxmis_q20_dp3.pos.gz"), sep = "\t", header=TRUE)
-mybaitscount <- read.table(gzfile("mybaits_104kpanel_geno_maxmis_q20_dp3.counts.gz"), sep = "\t", header=TRUE)
-twistcount <- read.table(gzfile("twist_104kpanel_geno_maxmis_q20_dp3.counts.gz"), sep = "\t", header=TRUE)
-shotguncount <- read.table(gzfile("shotgun_noudg_104kpanel_geno_maxmis_q20_dp3.counts.gz"), sep = "\t", header=TRUE)
-
-
+# Supplementary Figure 3: Allele depth for allele bias ---------------------------------------------------
+##### ind0:BRW001, ind1:DVT014, ind2:NCP002, ind3:VKP001
 mybaitspos <- read.table(gzfile("mybaits_104kpanel_geno_maxmis_q20_dp3.pos.gz"), sep = "\t", header=TRUE)
 twistpos <- read.table(gzfile("twist_104kpanel_geno_maxmis_q20_dp3.pos.gz"), sep = "\t", header=TRUE)
 shotgunpos <- read.table(gzfile("shotgun_noudg_104kpanel_geno_maxmis_q20_dp3.pos.gz"), sep = "\t", header=TRUE)
@@ -679,14 +677,14 @@ mybaitsAD <- cbind(mybaitspos, mybaitscount[1:4]) %>%
   mutate(scaff = paste(chr, pos, sep = "_")) %>%
   filter(totDepth >2) %>%
   rowwise() %>%
-  filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
-  mutate(
-    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+  filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>% #only biallele sites
+  mutate(AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
     AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
     AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
     CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
     CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
     GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+
 twistAD <- cbind(twistpos, twistcount[1:4]) %>%
   rename(A=4, C=5, G=6, T=7) %>%
   mutate(totDepth=A+C+G+T)  %>%
@@ -694,13 +692,13 @@ twistAD <- cbind(twistpos, twistcount[1:4]) %>%
   filter(totDepth >2) %>%
   rowwise() %>%
   filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
-  mutate(
-    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+  mutate(AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
     AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
     AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
     CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
     CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
     GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+
 shotgunAD <- cbind(shotgunpos, shotguncount[1:4]) %>%
   rename(A=4, C=5, G=6, T=7) %>%
   mutate(totDepth=A+C+G+T)  %>%
@@ -708,20 +706,20 @@ shotgunAD <- cbind(shotgunpos, shotguncount[1:4]) %>%
   filter(totDepth >2) %>%
   rowwise() %>%
   filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
-  mutate(
-    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+  mutate(AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
     AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
     AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
     CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
     CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
     GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
-common_rows <- Reduce(intersect, list(rownames(het_brw001), mybaitsAD$scaff, twistAD$scaff, shotgunAD$scaff)) #10407
+
+common_rows <- Reduce(intersect, list(mybaitsAD$scaff, twistAD$scaff, shotgunAD$scaff)) #11281
+#common_rows <- Reduce(intersect, list(rownames(het_brw001), mybaitsAD$scaff, twistAD$scaff, shotgunAD$scaff)) #10407
 mybaitsAD_filtered <- mybaitsAD[mybaitsAD$scaff %in% common_rows, ]
 twistAD_filtered <- twistAD[twistAD$scaff %in% common_rows, ]
 shotgunAD_filtered <- shotgunAD[shotgunAD$scaff %in% common_rows, ]
 
-res_mybaits <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
-                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+res_mybaits <- data.frame()
 logistic<-function(y=0){1/(1+exp(-y))}
 for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele1 <- substr(i,1,1)
@@ -731,14 +729,14 @@ for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele2_counts <- filtered_data[[allele2]]
   lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
   p.value<-summary(lm1)$coefficients[4]
+  p.value.bonf <- min(p.value * 18, 1)
   p.trans<-logistic(lm1$coefficients)
   CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
   CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
-  res_mybaits <- rbind(res_mybaits, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
-                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
+  res_mybaits <- rbind(res_mybaits, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value,p.value.bonf = p.value.bonf, 
+                                               CI.low=CIlow.trans, CI.high=CIup.trans,type="mybaits")) }
 
-res_twist <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
-                        CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+res_twist <- data.frame()
 logistic<-function(y=0){1/(1+exp(-y))}
 for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele1 <- substr(i,1,1)
@@ -748,14 +746,14 @@ for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele2_counts <- filtered_data[[allele2]]
   lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
   p.value<-summary(lm1)$coefficients[4]
+  p.value.bonf <- min(p.value * 18, 1)
   p.trans<-logistic(lm1$coefficients)
   CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
   CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
-  res_twist <- rbind(res_twist, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
-                                           CI.low=CIlow.trans, CI.high=CIup.trans)) }
+  res_twist <- rbind(res_twist, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, p.value.bonf=p.value.bonf, 
+                                           CI.low=CIlow.trans, CI.high=CIup.trans,type="twist")) }
 
-res_shotgun <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
-                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+res_shotgun <- data.frame()
 logistic<-function(y=0){1/(1+exp(-y))}
 for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele1 <- substr(i,1,1)
@@ -765,15 +763,17 @@ for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele2_counts <- filtered_data[[allele2]]
   lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
   p.value<-summary(lm1)$coefficients[4]
+  p.value.bonf <- min(p.value *18, 1)
   p.trans<-logistic(lm1$coefficients)
   CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
   CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
-  res_shotgun <- rbind(res_shotgun, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
-                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
-res_shotgun
-res_mybaits
-res_twist
+  res_shotgun <- rbind(res_shotgun, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, p.value.bonf=p.value.bonf, 
+                                               CI.low=CIlow.trans, CI.high=CIup.trans,type="shotgun")) } 
 
+abias1 <- rbind(res_shotgun, res_mybaits, res_twist) %>%
+  mutate(Genotype = factor(Genotype, levels = c("AG", "CT", "AC", "AT", "CG", "GT"))) %>%
+  arrange(Genotype)
+  
 #### VIOLIN PLOT OF ALLELE BIAS
 df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AC>0)%>%select(AC), Group = "shotgun")
 df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(AC>0)%>%select(AC), Group = "myBaits")
@@ -808,7 +808,7 @@ combined_GT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
 a1 <- ggplot(combined_AG, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  # Add boxplot inside violin
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   labs(y="BRW001") +
   theme_minimal() +
   theme(legend.position = "none") + 
@@ -816,35 +816,35 @@ a1 <- ggplot(combined_AG, aes(x = Group, y = Frequency, fill = Group)) +
 a2 <- ggplot(combined_CT, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 a3 <- ggplot(combined_AC, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 a4 <- ggplot(combined_AT, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 a5 <- ggplot(combined_CG, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 a6 <- ggplot(combined_GT, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
@@ -858,11 +858,11 @@ shared_legend <- get_legend(
   ggplot(combined_GT, aes(x = Group, y = Frequency, fill = Group)) +
     geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
     geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-    scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+    scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
     theme_minimal() +
     theme(legend.position = "top") )
 
-#Sample DVT014
+#Sample DVT014 ------------------------------------------------------------
 mybaitsAD <- cbind(mybaitspos, mybaitscount[5:8]) %>%
   rename(A=4, C=5, G=6, T=7) %>%
   mutate(totDepth=A+C+G+T)  %>%
@@ -870,13 +870,13 @@ mybaitsAD <- cbind(mybaitspos, mybaitscount[5:8]) %>%
   filter(totDepth >2) %>%
   rowwise() %>%
   filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
-  mutate(
-    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+  mutate(AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
     AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
     AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
     CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
     CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
     GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+
 twistAD <- cbind(twistpos, twistcount[5:8]) %>%
   rename(A=4, C=5, G=6, T=7) %>%
   mutate(totDepth=A+C+G+T)  %>%
@@ -884,13 +884,13 @@ twistAD <- cbind(twistpos, twistcount[5:8]) %>%
   filter(totDepth >2) %>%
   rowwise() %>%
   filter(sum(c(A > 0, C > 0, G > 0, T > 0)) == 2) %>%
-  mutate(
-    AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
+  mutate(AC = ifelse(A > 0 & C > 0, A/(A+C), 0),
     AG = ifelse(A > 0 & G > 0, A/(A+G), 0),
     AT = ifelse(A > 0 & T > 0, A/(A+T), 0),
     CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
     CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
     GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
+
 shotgunAD <- cbind(shotgunpos, shotguncount[5:8]) %>%
   rename(A=4, C=5, G=6, T=7) %>%
   mutate(totDepth=A+C+G+T)  %>%
@@ -905,13 +905,13 @@ shotgunAD <- cbind(shotgunpos, shotguncount[5:8]) %>%
     CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
     CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
     GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
-common_rows <- Reduce(intersect, list(rownames(het_dvt014), mybaitsAD$scaff, twistAD$scaff, shotgunAD$scaff)) #3019
+
+common_rows <- Reduce(intersect, list(mybaitsAD$scaff, twistAD$scaff, shotgunAD$scaff)) #3331
 mybaitsAD_filtered <- mybaitsAD[mybaitsAD$scaff %in% common_rows, ]
 twistAD_filtered <- twistAD[twistAD$scaff %in% common_rows, ]
 shotgunAD_filtered <- shotgunAD[shotgunAD$scaff %in% common_rows, ]
 
-res_mybaits <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
-                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+res_mybaits <- data.frame()
 logistic<-function(y=0){1/(1+exp(-y))}
 for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele1 <- substr(i,1,1)
@@ -921,14 +921,14 @@ for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele2_counts <- filtered_data[[allele2]]
   lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
   p.value<-summary(lm1)$coefficients[4]
+  p.value.bonf <- min(p.value * 18, 1)
   p.trans<-logistic(lm1$coefficients)
   CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
   CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
-  res_mybaits <- rbind(res_mybaits, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
-                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
+  res_mybaits <- rbind(res_mybaits, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, p.value.bonf=p.value.bonf,
+                                               CI.low=CIlow.trans, CI.high=CIup.trans,type="mybaits")) }
 
-res_twist <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
-                        CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+res_twist <- data.frame()
 logistic<-function(y=0){1/(1+exp(-y))}
 for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele1 <- substr(i,1,1)
@@ -938,14 +938,14 @@ for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele2_counts <- filtered_data[[allele2]]
   lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
   p.value<-summary(lm1)$coefficients[4]
+  p.value.bonf <- min(p.value * 18, 1)
   p.trans<-logistic(lm1$coefficients)
   CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
   CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
-  res_twist <- rbind(res_twist, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
-                                           CI.low=CIlow.trans, CI.high=CIup.trans)) }
+  res_twist <- rbind(res_twist, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, p.value.bonf=p.value.bonf,
+                                           CI.low=CIlow.trans, CI.high=CIup.trans, type="twist")) }
 
-res_shotgun <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
-                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+res_shotgun <- data.frame()
 logistic<-function(y=0){1/(1+exp(-y))}
 for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele1 <- substr(i,1,1)
@@ -955,14 +955,16 @@ for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele2_counts <- filtered_data[[allele2]]
   lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
   p.value<-summary(lm1)$coefficients[4]
+  p.value.bonf <- min(p.value * 18, 1)
   p.trans<-logistic(lm1$coefficients)
   CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
   CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
-  res_shotgun <- rbind(res_shotgun, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
-                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
-res_shotgun
-res_mybaits
-res_twist
+  res_shotgun <- rbind(res_shotgun, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, p.value.bonf=p.value.bonf,
+                                               CI.low=CIlow.trans, CI.high=CIup.trans, type="shotgun")) }
+
+abias2 <- rbind(res_shotgun,res_mybaits,res_twist) %>% mutate(sample = "DVT014") %>%
+  mutate(Genotype = factor(Genotype, levels = c("AG", "CT", "AC", "AT", "CG", "GT"))) %>%
+  arrange(Genotype)
 
 #### VIOLIN PLOT OF ALLELE BIAS
 df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AC>0)%>%select(AC), Group = "shotgun")
@@ -998,7 +1000,7 @@ combined_GT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
 b1 <- ggplot(combined_AG, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  # Add boxplot inside violin
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   labs(y="DVT014") +
   theme_minimal() +
   theme(legend.position = "none") + 
@@ -1006,40 +1008,40 @@ b1 <- ggplot(combined_AG, aes(x = Group, y = Frequency, fill = Group)) +
 b2 <- ggplot(combined_CT, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 b3 <- ggplot(combined_AC, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 b4 <- ggplot(combined_AT, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 b5 <- ggplot(combined_CG, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 b6 <- ggplot(combined_GT, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 
-#Sample NCP002
+#Sample NCP002 ----------------------------------------------------------------
 ##mybaits
 mybaitsAD <- cbind(mybaitspos, mybaitscount[9:12]) %>%
   rename(A=4, C=5, G=6, T=7) %>%
@@ -1083,13 +1085,12 @@ shotgunAD <- cbind(shotgunpos, shotguncount[9:12]) %>%
     CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
     CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
     GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
-common_rows <- Reduce(intersect, list(rownames(het_ncp002), mybaitsAD$scaff, twistAD$scaff, shotgunAD$scaff)) #67
+common_rows <- Reduce(intersect, list(mybaitsAD$scaff, twistAD$scaff, shotgunAD$scaff)) #72, previously 67
 mybaitsAD_filtered <- mybaitsAD[mybaitsAD$scaff %in% common_rows, ]
 twistAD_filtered <- twistAD[twistAD$scaff %in% common_rows, ]
 shotgunAD_filtered <- shotgunAD[shotgunAD$scaff %in% common_rows, ]
 
-res_mybaits <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
-                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+res_mybaits <- data.frame()
 logistic<-function(y=0){1/(1+exp(-y))}
 for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele1 <- substr(i,1,1)
@@ -1099,14 +1100,14 @@ for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele2_counts <- filtered_data[[allele2]]
   lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
   p.value<-summary(lm1)$coefficients[4]
+  p.value.bonf <- min(p.value * 18, 1)
   p.trans<-logistic(lm1$coefficients)
   CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
   CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
-  res_mybaits <- rbind(res_mybaits, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
-                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
+  res_mybaits <- rbind(res_mybaits, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value,p.value.bonf=p.value.bonf,
+                                               CI.low=CIlow.trans, CI.high=CIup.trans,type="mybaits")) }
 
-res_twist <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
-                        CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+res_twist <- data.frame()
 logistic<-function(y=0){1/(1+exp(-y))}
 for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele1 <- substr(i,1,1)
@@ -1116,14 +1117,14 @@ for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele2_counts <- filtered_data[[allele2]]
   lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
   p.value<-summary(lm1)$coefficients[4]
+  p.value.bonf <- min(p.value * 18, 1)
   p.trans<-logistic(lm1$coefficients)
   CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
   CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
-  res_twist <- rbind(res_twist, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
-                                           CI.low=CIlow.trans, CI.high=CIup.trans)) }
+  res_twist <- rbind(res_twist, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value,p.value.bonf=p.value.bonf,
+                                           CI.low=CIlow.trans, CI.high=CIup.trans,type="twist")) }
 
-res_shotgun <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
-                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+res_shotgun <- data.frame()
 logistic<-function(y=0){1/(1+exp(-y))}
 for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele1 <- substr(i,1,1)
@@ -1133,14 +1134,16 @@ for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele2_counts <- filtered_data[[allele2]]
   lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
   p.value<-summary(lm1)$coefficients[4]
+  p.value.bonf <- min(p.value * 18, 1)
   p.trans<-logistic(lm1$coefficients)
   CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
   CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
-  res_shotgun <- rbind(res_shotgun, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
-                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
-res_shotgun
-res_mybaits
-res_twist
+  res_shotgun <- rbind(res_shotgun, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value,p.value.bonf=p.value.bonf,
+                                               CI.low=CIlow.trans, CI.high=CIup.trans,type="shotgun")) }
+
+abias3 <- rbind(res_shotgun,res_mybaits,res_twist) %>%mutate(sample = "NCP002") %>%
+  mutate(Genotype = factor(Genotype, levels = c("AG", "CT", "AC", "AT", "CG", "GT"))) %>%
+  arrange(Genotype)
 
 #### VIOLIN PLOT OF ALLELE BIAS
 df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AC>0)%>%select(AC), Group = "shotgun")
@@ -1176,7 +1179,7 @@ combined_GT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
 c1 <- ggplot(combined_AG, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  # Add boxplot inside violin
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   labs(y="NCP002") +
   theme_minimal() +
   theme(legend.position = "none") + 
@@ -1184,35 +1187,35 @@ c1 <- ggplot(combined_AG, aes(x = Group, y = Frequency, fill = Group)) +
 c2 <- ggplot(combined_CT, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 c3 <- ggplot(combined_AC, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 c4 <- ggplot(combined_AT, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 c5 <- ggplot(combined_CG, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 c6 <- ggplot(combined_GT, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
@@ -1260,13 +1263,12 @@ shotgunAD <- cbind(shotgunpos, shotguncount[13:16]) %>%
     CG = ifelse(C > 0 & G > 0, C/(C+G), 0),
     CT = ifelse(C > 0 & T > 0, C/(C+T), 0),
     GT = ifelse(G > 0 & T > 0, G/(G+T), 0))
-common_rows <- Reduce(intersect, list(rownames(het_vkp001), mybaitsAD$scaff, twistAD$scaff, shotgunAD$scaff)) #8879
+common_rows <- Reduce(intersect, list(mybaitsAD$scaff, twistAD$scaff, shotgunAD$scaff)) #9439, previous 8879
 mybaitsAD_filtered <- mybaitsAD[mybaitsAD$scaff %in% common_rows, ]
 twistAD_filtered <- twistAD[twistAD$scaff %in% common_rows, ]
 shotgunAD_filtered <- shotgunAD[shotgunAD$scaff %in% common_rows, ]
 
-res_mybaits <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
-                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+res_mybaits <- data.frame()
 logistic<-function(y=0){1/(1+exp(-y))}
 for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele1 <- substr(i,1,1)
@@ -1276,14 +1278,14 @@ for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele2_counts <- filtered_data[[allele2]]
   lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
   p.value<-summary(lm1)$coefficients[4]
+  p.value.bonf <- min(p.value * 18, 1)
   p.trans<-logistic(lm1$coefficients)
   CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
   CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
-  res_mybaits <- rbind(res_mybaits, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
-                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
+  res_mybaits <- rbind(res_mybaits, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, p.value.bonf=p.value.bonf,
+                                               CI.low=CIlow.trans, CI.high=CIup.trans,type="mybaits")) }
 
-res_twist <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
-                        CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+res_twist <- data.frame()
 logistic<-function(y=0){1/(1+exp(-y))}
 for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele1 <- substr(i,1,1)
@@ -1293,14 +1295,14 @@ for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele2_counts <- filtered_data[[allele2]]
   lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
   p.value<-summary(lm1)$coefficients[4]
+  p.value.bonf <- min(p.value * 18, 1)
   p.trans<-logistic(lm1$coefficients)
   CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
   CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
-  res_twist <- rbind(res_twist, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
-                                           CI.low=CIlow.trans, CI.high=CIup.trans)) }
+  res_twist <- rbind(res_twist, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, p.value.bonf=p.value.bonf,
+                                           CI.low=CIlow.trans, CI.high=CIup.trans,type="twist")) }
 
-res_shotgun <- data.frame(Genotype=character(), estADratio=numeric(), p.value=numeric(), 
-                          CI.low=numeric(), CI.high=numeric(), stringsAsFactors=FALSE)
+res_shotgun <- data.frame()
 logistic<-function(y=0){1/(1+exp(-y))}
 for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele1 <- substr(i,1,1)
@@ -1310,15 +1312,17 @@ for (i in c("AC", "AG", "AT", "CG", "CT", "GT")) {
   allele2_counts <- filtered_data[[allele2]]
   lm1 <- glm(cbind(allele1_counts, allele2_counts)~1,data=filtered_data,family="quasibinomial")
   p.value<-summary(lm1)$coefficients[4]
+  p.value.bonf <- min(p.value * 18, 1)
   p.trans<-logistic(lm1$coefficients)
   CIlow.trans<-logistic(lm1$coefficients-summary(lm1)$coefficients[2]*1.96)
   CIup.trans<-logistic(lm1$coefficients+summary(lm1)$coefficients[2]*1.96)
-  res_shotgun <- rbind(res_shotgun, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, 
-                                               CI.low=CIlow.trans, CI.high=CIup.trans)) }
+  res_shotgun <- rbind(res_shotgun, data.frame(Genotype=i, estADratio=p.trans, p.value=p.value, p.value.bonf=p.value.bonf,
+                                               CI.low=CIlow.trans, CI.high=CIup.trans,type="shotgun")) }
 
-res_shotgun
-res_mybaits
-res_twist
+abias4 <- rbind(res_shotgun,res_mybaits,res_twist) %>% mutate(sample = "VKP001")  %>%
+  mutate(Genotype = factor(Genotype, levels = c("AG", "CT", "AC", "AT", "CG", "GT"))) %>%
+  arrange(Genotype)
+
 #### VIOLIN PLOT OF ALLELE BIAS
 df1 <- data.frame(Frequency = shotgunAD_filtered%>%filter(AC>0)%>%select(AC), Group = "shotgun")
 df2 <- data.frame(Frequency = mybaitsAD_filtered%>%filter(AC>0)%>%select(AC), Group = "myBaits")
@@ -1353,7 +1357,7 @@ combined_GT <- rbind(df1, df2, df3) %>% rename("Frequency"=1) %>%
 d1 <- ggplot(combined_AG, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  # Add boxplot inside violin
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
   labs(y="VKP001") +
   theme_minimal() +
   theme(legend.position = "none") + 
@@ -1361,35 +1365,35 @@ d1 <- ggplot(combined_AG, aes(x = Group, y = Frequency, fill = Group)) +
 d2 <- ggplot(combined_CT, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 d3 <- ggplot(combined_AC, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 d4 <- ggplot(combined_AT, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 d5 <- ggplot(combined_CG, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
 d6 <- ggplot(combined_GT, aes(x = Group, y = Frequency, fill = Group)) +
   geom_violin(trim = TRUE) +  # Use trim = TRUE if you want to trim the tails
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +  
-  scale_fill_manual(values = c("orange","#F8766D", "#00BFC4"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
+  scale_fill_manual(values = c("darkseagreen3","#E69F00","#0072B2"), name = "Method", labels = c("Shotgun","myBaits", "Twist")) +
   theme_minimal() +
   theme(legend.position = "none") + 
   theme(axis.title.x = element_blank(),axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),axis.title.y = element_blank())
@@ -1408,5 +1412,256 @@ grob_plots <- arrangeGrob(a1,a2,a3,a4,a5,a6,
                           c1,c2,c3,c4,c5,c6, nrow=4,ncol=6,widths = c(1,1,1,1,1,1))
 
 combined <- grid.arrange(arrangeGrob(title1, title2, title3, title4, title5, title6, ncol = 6, widths = c(1,1,1,1,1,1)),
-                         grob_plots, shared_legend, nrow = 3, heights = c(1,10,1))
-#14x7
+                         grob_plots, shared_legend, nrow = 3, heights = c(1,10,1)) 
+
+# Supp: Performance relative to endogenous DNA ----------------------------------------------------------------------------
+# Endogenous DNA from shallow shotgun seq
+scatter_mybaits <- dat %>%
+  select(Sample, Method, Endogenous_DNA_shotgun, Target_eff_adjusted, Target_eff_original, Ontarget_rate_adjusted, Ontarget_rate, 
+         Percentage_of_mtDNA,Mean_cov_of_104k_SNPsite_incdup, Mean_cov_of_target_104k_SNPsite_dedup,Mean_cov_of_104k_80bp_incdup) %>%
+  filter(Method =="myBaits")
+scatter_twist <- dat %>%
+  select(Sample, Method, Endogenous_DNA_shotgun, Target_eff_adjusted, Target_eff_original, Ontarget_rate_adjusted, Ontarget_rate, 
+         Percentage_of_mtDNA,Mean_cov_of_104k_SNPsite_incdup, Mean_cov_of_target_104k_SNPsite_dedup,Mean_cov_of_104k_80bp_incdup) %>%
+  filter(Method =="Twist")
+
+model <- lm(Endogenous_DNA_shotgun ~ Target_eff_original, data = scatter_mybaits)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+e3 <- ggplot(scatter_mybaits, aes(x=Endogenous_DNA_shotgun , y = Target_eff_original)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 35, y = 20, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Endogenous DNA (%)", y = "Target eff for original panel (%)", title = "myBaits") + ylim(0,100) + xlim(0,100) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 8, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 8),
+        axis.text = element_text(size = 8))
+
+model <- lm(Endogenous_DNA_shotgun ~ Target_eff_original, data = scatter_twist)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+e4 <- ggplot(scatter_twist, aes(x=Endogenous_DNA_shotgun , y = Target_eff_original)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 5, y = 90, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Endogenous DNA (%)", y = "Target eff for original panel (%)", title = "Twist") + ylim(0,100) + xlim(0,100) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 8, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 8),
+        axis.text = element_text(size = 8))
+
+model <- lm(Endogenous_DNA_shotgun ~ Ontarget_rate, data = scatter_mybaits)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+e5 <- ggplot(scatter_mybaits, aes(x=Endogenous_DNA_shotgun , y = Ontarget_rate)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 35, y = 20, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Endogenous DNA (%)", y = "On-target rate for original panel (%)", title = "myBaits") + ylim(0,100) + xlim(0,100) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 8, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 8),
+        axis.text = element_text(size = 8))
+
+model <- lm(Endogenous_DNA_shotgun ~ Ontarget_rate, data = scatter_twist)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+e6 <- ggplot(scatter_twist, aes(x=Endogenous_DNA_shotgun , y = Ontarget_rate)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 5, y = 90, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Endogenous DNA (%)", y = "On-target rate for original panel (%)", title = "Twist") + ylim(0,100) + xlim(0,100) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 8, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 8),
+        axis.text = element_text(size = 8))
+
+model <- lm(Endogenous_DNA_shotgun ~ Percentage_of_mtDNA, data = scatter_mybaits)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+e7 <- ggplot(scatter_mybaits, aes(x=Endogenous_DNA_shotgun , y = Percentage_of_mtDNA)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  annotate("text", x = 35, y = 0.09, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Endogenous DNA (%)", y = "Mitochondrial reads (%)", title = "myBaits") + ylim(0,0.1) + xlim(0,100) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 8, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 8),
+        axis.text = element_text(size = 8))
+
+model <- lm(Endogenous_DNA_shotgun ~ Percentage_of_mtDNA, data = scatter_twist)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+e8 <- ggplot(scatter_twist, aes(x=Endogenous_DNA_shotgun , y = Percentage_of_mtDNA)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  annotate("text", x = 35, y = 0.09, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Endogenous DNA (%)", y = "Mitochondrial reads (%)", title = "Twist") + ylim(0,0.1) + xlim(0,100) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 8, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 8),
+        axis.text = element_text(size = 8))
+
+model <- lm(Endogenous_DNA_shotgun ~ Mean_cov_of_104k_80bp_incdup, data = scatter_mybaits)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+e9 <- ggplot(scatter_mybaits, aes(x=Endogenous_DNA_shotgun , y = Mean_cov_of_104k_80bp_incdup)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 35, y = 20, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Endogenous DNA (%)", y = "Cov of comparable panel (inc dup)", title = "myBaits") + ylim(0,100) + xlim(0,100) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 8, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 8),
+        axis.text = element_text(size = 8))
+
+model <- lm(Endogenous_DNA_shotgun ~ Mean_cov_of_104k_80bp_incdup, data = scatter_twist)
+summary_model <- summary(model)
+slope <- coef(model)[2]
+se_slope <- summary_model$coefficients[2, 2]
+t_slope <- (slope - 1) / se_slope
+p_value_slope_vs_1 <- 2 * pt(-abs(t_slope), df = model$df.residual)
+intercept <- coef(model)[1]
+se_intercept <- summary_model$coefficients[1, 2]
+t_intercept <- (intercept - 0) / se_intercept
+p_value_intercept_vs_0 <- 2 * pt(-abs(t_intercept), df = model$df.residual)
+p_value <- summary(model)$coefficients[2, 4]
+r2 <- summary(model)$r.squared
+eqn <- paste0("\nR² = ", round(r2, 3),
+              "\np (slope0) = ", format.pval(p_value, digits = 3, eps = 0.001),
+              "\np (slope1) = ", format.pval(p_value_slope_vs_1, digits = 3, eps = 0.001),
+              "\np (int0) = ", format.pval(p_value_intercept_vs_0, digits = 3, eps = 0.001))
+e10 <- ggplot(scatter_twist, aes(x=Endogenous_DNA_shotgun , y = Mean_cov_of_104k_80bp_incdup)) +
+  geom_point(size = 1) + geom_smooth(method = "lm", se = TRUE, color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 5, y = 90, label = eqn, hjust = 0, size = 2.5) +
+  labs(x = "Endogenous DNA (%)", y = "Cov of comparable panel (inc dup)", title = "Twist") + ylim(0,100) + xlim(0,100) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 8, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 8),
+        axis.text = element_text(size = 8))
+
+row1e <- e3 + e4 + e5 + e6 + plot_layout(guides = 'collect', widths = c(1, 1, 1,1))
+row2e <- e7 + e8 + e9 + e10 + plot_layout(guides = 'collect', widths = c(1,1,1,1))
+row1e / row2e + plot_annotation(tag_levels = 'A') & theme(plot.margin = unit(c(1, 1, 1, 1), "pt"),legend.position = "bottom") #8x5
+
+# Supp: Means and standard deviation -------------------------------------------------------------------------
+dat_summary <- dat %>% group_by(Method) %>%
+  summarise(across(where(is.numeric), list(Mean = ~mean(.x, na.rm = TRUE), SD = ~sd(.x, na.rm = TRUE)))) %>% 
+  mutate(Method= factor(Method, levels=c("myBaits","Twist"))) %>%
+  arrange(Method)
+
+dat2 <- read_xlsx("~/Dropbox/CORVID_baits/Analyses/rawdata_allsamples/baitscomparison.xlsx") %>%
+  filter(Country %in% c("PL","B") & !Sample %in% c("DVT016","DVT022","KZR002")) %>%
+  mutate(All_mapped_reads_to_original_panel = ifelse(Method == "myBaits", All_mapped_reads_to_104k_121bp, All_mapped_reads_to_232k_80bp)) %>%
+  mutate(Nr_comparable_mapped_reads = Nr_mapped_reads - All_non_comparable_mapped_reads) %>%
+  mutate(Target_eff_adjusted = All_mapped_reads_to_104k_80bp / Nr_comparable_mapped_reads*100) %>%
+  mutate(Target_eff_original = All_mapped_reads_to_original_panel / Nr_mapped_reads*100) %>%
+  mutate(Target_eff_adjusted_more = ifelse(Method == "Twist", (All_mapped_reads_to_104k_80bp / (Nr_comparable_mapped_reads*104/232))*100, Target_eff_adjusted)) %>%
+  mutate(Target_eff_adjusted_more2 = ifelse(Method == "Twist", (All_mapped_reads_to_104k_80bp*2 / (Nr_comparable_mapped_reads*104/232))*100, Target_eff_adjusted)) %>%
+  mutate(Target_eff_original_2x = ifelse(Method == "Twist", (All_mapped_reads_to_original_panel*2 / Nr_mapped_reads*100), Target_eff_original)) %>%
+  mutate(Ontarget_rate_adjusted = All_mapped_reads_to_104k_80bp / (Nr_rawreads - All_non_comparable_mapped_reads)*100) %>%
+  mutate(Ontarget_rate = All_mapped_reads_to_original_panel / Nr_rawreads*100) %>%
+  mutate(Obs_exp_cov = Mean_cov_of_104k_SNPsite_incdup / Expected_genomic_coverage_of_input) %>%
+  mutate(Percentage_of_mtDNA = All_MT_reads / Nr_mapped_reads * 100) %>%
+  mutate(Mapped_reads_to_original_panel_dedup = ifelse(Method == "myBaits", Reads_aligned_to_104k_121bp_dedup, Reads_aligned_to_232k_80bp_dedup)) %>%
+  mutate(Target_eff_adjusted_dedup = Reads_aligned_to_104k_80bp_bait_dedup / (Nr_dedup_mapped_reads-Reads_to_be_ommitted_dedup)*100) %>%
+  mutate(Target_eff_original_dedup = Mapped_reads_to_original_panel_dedup / Nr_dedup_mapped_reads*100) %>%
+  mutate(Ontarget_rate_adjusted_dedup = Reads_aligned_to_104k_80bp_bait_dedup / (Nr_dedup_mapped_reads - Reads_to_be_ommitted_dedup)*100) %>%
+  mutate(Ontarget_rate_dedup = Mapped_reads_to_original_panel_dedup / Nr_dedup_mapped_reads*100) %>%
+  mutate(Percentage_of_mtDNA_dedup = MT_reads_dedup /Nr_dedup_mapped_reads * 100)
+
+dat_summary2 <- dat2 %>% group_by(Method) %>%
+  summarise(across(where(is.numeric), list(Mean = ~mean(.x, na.rm = TRUE), SD = ~sd(.x, na.rm = TRUE)))) %>% 
+  mutate(Method= factor(Method, levels=c("myBaits","Twist"))) %>%
+  arrange(Method)
