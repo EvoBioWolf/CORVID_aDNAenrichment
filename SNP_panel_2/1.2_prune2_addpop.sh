@@ -1,13 +1,8 @@
 #!/bin/bash -l
 #SBATCH -J ldpru2
-#SBATCH --get-user-env
-#SBATCH --mail-user=gwee@biologie.uni-muenchen.de
-#SBATCH --clusters=biohpc_gen
-#SBATCH --partition=biohpc_gen_normal
-#SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=2
 #SBATCH --time=1-00:00:00
-#SBATCH -o /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_2/slurms/slurm-%j-%x.out
+#SBATCH -o PATH/01_probes/snp_panel_2/slurms/slurm-%j-%x.out
 
 ###############################################################################################
 #                                             Part2                                           # 
@@ -30,10 +25,10 @@ module load plink2
 module load vcftools
 module load bcftools
 
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_2"
-ref="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/04_fresh2/05.1_recal/overlap/134inds_overlapped_filtered_norepeats.vcf.gz"
-new="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/04_fresh2"
-hwe="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/04_fresh2/05.1_recal/overlap/134inds_overlapped_filtered_norepeats_cnx3_hwedis.pos"
+dat="PATH/01_probes/snp_panel_2"
+ref="PATH/04_fresh2/05.1_recal/overlap/134inds_overlapped_filtered_norepeats.vcf.gz"
+new="PATH/04_fresh2"
+hwe="PATH/04_fresh2/05.1_recal/overlap/134inds_overlapped_filtered_norepeats_cnx3_hwedis.pos"
 
 cd $dat/neutral_addpop/summary
 mkdir ./intron/10kbthin/${5}
@@ -87,13 +82,13 @@ awk 'NR>1 {print $1, $2}' ${5}_biallelic_reduced_positions.txt > ${5}_biallelic_
 cat ${5}_biallelic_pos.txt ${dat}/neutral_addpop/summary/4fold/cnx6_thin1kb_nooverlap_pos.txt | sort -n > ${5}_inc4fold_biallelic_pos.txt
 
 #check overlap with previous SNP panel 1
-awk 'NR==FNR{c[$1, $2]++;next} !($1, $2) in c' /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_summary/05_final/snp_panel_104k_final.pos ${5}_inc4fold_biallelic_pos.txt > ${5}_biallelic_pos_nooverlap.txt
+awk 'NR==FNR{c[$1, $2]++;next} !($1, $2) in c' PATH/01_probes/snp_panel_summary/05_final/snp_panel_104k_final.pos ${5}_inc4fold_biallelic_pos.txt > ${5}_biallelic_pos_nooverlap.txt
 
 #check paralogs
 awk 'NR==FNR{c[$1, $2]++;next} !($1, $2) in c' ${hwe} ${5}_biallelic_pos_nooverlap.txt > ${5}_biallelic_pos_nooverlap_hwe.txt
 
 #plot pca for neutral snps including IRQ panel
-cat /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_summary/05_final/neutral.pos ${5}_biallelic_pos_nooverlap_hwe.txt | sort -n > all_neutral_60K_$5.pos
+cat PATH/01_probes/snp_panel_summary/05_final/neutral.pos ${5}_biallelic_pos_nooverlap_hwe.txt | sort -n > all_neutral_60K_$5.pos
 vcftools --gzvcf ${ref} \
 --positions all_neutral_60K_$5.pos --recode --out all_neutral_60K_$5
 bcftools view -Oz -o all_neutral_60K_$5.vcf.gz all_neutral_60K_$5.recode.vcf
