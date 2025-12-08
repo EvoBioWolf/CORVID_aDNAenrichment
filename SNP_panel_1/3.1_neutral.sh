@@ -1,9 +1,5 @@
 #!/bin/bash -l
 #SBATCH -J syn2
-#SBATCH --get-user-env
-#SBATCH --mail-user=gwee@biologie.uni-muenchen.de
-#SBATCH --clusters=biohpc_gen
-#SBATCH --partition=biohpc_gen_highmem
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=12
@@ -14,10 +10,10 @@
 # they should correspond to v2.5.
 
 module load vcftools
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/neutral"
-ref="/dss/dsslegfs01/pr53da/pr53da-dss-0018/assemblies/Corvus.cornix/genome/v2/v2.5"
-refc="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst/christen_vcf"
-scaff="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/scaffold2chr"
+dat="PATH/01_probes/neutral"
+ref="PATH/assemblies/Corvus.cornix/genome/v2/v2.5"
+refc="PATH/01_probes/fst/christen_vcf"
+scaff="PATH/01_probes/scaffold2chr"
 
 cd $dat
 python ./scripts_rwilliamson/NewAnnotateRef.py GCF_000738735.1_Hooded_Crow_genome_genomic.fna GCF_000738735.1_Hooded_Crow_genome_genomic.gff > genome_HC_allpaths41687_v2.5_annotated.sites
