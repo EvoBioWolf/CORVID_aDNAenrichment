@@ -23,7 +23,7 @@ pat <- c("chr1","chr1A","chr2","chr3","chr4","chr4A","chr5","chr6","chr7","chr8"
 for (filename in args[3:5]) 
 {
 cat(filename)
-setwd("/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst")
+setwd("PATH/01_probes/fst")
 setwd(paste0(getwd(), args[1]))
 x <- read.delim(file=paste(filename,"fst.chr", sep="."), header=TRUE, sep = "")
 sorted.x <- x %>% arrange(factor(x$CHROM, levels = pat))
@@ -31,7 +31,7 @@ sorted.x.chr <- sorted.x[!grepl("scaffold", sorted.x$CHROM),] #remove scaffolds 
 sorted.x.fst <- dfOrder(x,c(-4,2)) #sort dcreasingly by Fst then increasingly by ChrNo.
 sorted.x.fst.autosomes <- sorted.x.fst[!grepl("chrZ", sorted.x$CHROM),] # only autosomes
 sorted.x.fst.chrz <- sorted.x.fst[grepl("chrZ", sorted.x$CHROM),] # only chrZ
-setwd("/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst/fst_summary")
+setwd("PATH/01_probes/fst/fst_summary")
 write.table(sorted.x.fst, file=paste(args[2],filename,"chr_sorted.txt", sep="_"), sep = "\t", row.names = FALSE, col.names = TRUE, quote=FALSE)
 write.table(sorted.x.fst.autosomes, file=paste(args[2],filename,"chr_autosomes_only.txt", sep="_"), sep = "\t", row.names = FALSE, col.names = TRUE, quote=FALSE)
 write.table(sorted.x.fst.chrz, file=paste(args[2],filename,"chr_chrz_only.txt", sep="_"), sep = "\t", row.names = FALSE, col.names = TRUE, quote=FALSE)
