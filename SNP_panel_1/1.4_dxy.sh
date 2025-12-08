@@ -3,9 +3,9 @@
 conda activate renv
 module load bcftools/1.9
 
-ref="dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst"
-dat="refdss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/dxy"
-scaff="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/scaffold2chr"
+ref="PATH/01_probes/fst"
+dat="PATH/01_probes/dxy"
+scaff="PATH/01_probes/scaffold2chr"
 
 cd $dat
 
