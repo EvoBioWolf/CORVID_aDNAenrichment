@@ -1,12 +1,8 @@
 #!/bin/bash -l
 #SBATCH -J wgstarcov
-#SBATCH --get-user-env
-#SBATCH --mail-user=gwee@biologie.uni-muenchen.de
-#SBATCH --clusters=biohpc_gen
-#SBATCH --partition=biohpc_gen_normal
 #SBATCH --cpus-per-task=2
 #SBATCH --time=2-00:00:00
-#SBATCH -o /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/slurms/slurm-%j-%x.out
+#SBATCH -o PATH/05_aDNA/slurms/slurm-%j-%x.out
 
 # sbatch 1.2_wgs_targets_count.sh probes_104k_80bp
 # sbatch 1.2_wgs_targets_count.sh probes_104k 
@@ -15,9 +11,9 @@ echo $(date)
 STARTTIME=$(date +%s)
 
 conda activate biotools
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA"
-wgs2="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/00_eager_wgs2/results/ext_mapped"
-wgs3="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/00_eager_wgs3/results/ext_mapped"
+dat="PATH/05_aDNA"
+wgs2="PATH/05_aDNA/00_eager_wgs2/results/ext_mapped"
+wgs3="PATH/05_aDNA/00_eager_wgs3/results/ext_mapped"
 
 cd ${dat}
 cd 00_baitscomparison
