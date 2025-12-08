@@ -1,12 +1,8 @@
 #!/bin/bash -l
 #SBATCH -J bedtools
-#SBATCH --get-user-env
-#SBATCH --mail-user=gwee@biologie.uni-muenchen.de
-#SBATCH --clusters=biohpc_gen
-#SBATCH --partition=biohpc_gen_normal
 #SBATCH --cpus-per-task=1
 #SBATCH --time=1-00:00:00
-#SBATCH -o /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_twist/slurms/slurm-%j-%x.out
+#SBATCH -o PATH/01_probes/snp_panel_twist/slurms/slurm-%j-%x.out
 #SBATCH --mem-per-cpu=4763mb
 
 # sbatch 1.1_probes.sh snp_panel_combined_232k_0based
@@ -15,10 +11,10 @@ conda activate py3.8
 module load bedtools2/2.27.1-gcc8 
 #picard.jar=2.25.7
 
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_twist"
-neu="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/neutral"
-new="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/04_fresh2"
-ref="/dss/dsslegfs01/pr53da/pr53da-dss-0018/assemblies/Corvus.cornix/genome/v2/v2.5/genome_HC_allpaths41687_v2.5.fasta"
+dat="PATH/01_probes/snp_panel_twist"
+neu="PATH/01_probes/neutral"
+new="PATH/04_fresh2"
+ref="PATH/assemblies/Corvus.cornix/genome/v2/v2.5/genome_HC_allpaths41687_v2.5.fasta"
 
 echo $(date)
 STARTTIME=$(date +%s)
