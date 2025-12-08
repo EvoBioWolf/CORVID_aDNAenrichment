@@ -1,12 +1,8 @@
 #!/bin/bash -l
 #SBATCH -J ANCangsd
-#SBATCH --get-user-env
-#SBATCH --mail-user=gwee@biologie.uni-muenchen.de
-#SBATCH --clusters=biohpc_gen
-#SBATCH --partition=biohpc_gen_normal
 #SBATCH --cpus-per-task=12
 #SBATCH --time=2-00:00:00
-#SBATCH -o /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/slurms/slurm-%j-%x.out
+#SBATCH -o PATH/05_aDNA/slurms/slurm-%j-%x.out
 
 # sbatch 1.1.1_angsd_baitscomparison.sh twist 104kpanel probes_104k_SNPsite.1based
 # sbatch 1.1.1_angsd_baitscomparison.sh mybaits 104kpanel probes_104k_SNPsite.1based
@@ -15,8 +11,8 @@
 echo $(date)
 STARTTIME=$(date +%s)
 
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA"
-ref="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/genome_HC_allpaths41687_v2.5.fasta"
+dat="PATH/05_aDNA"
+ref="PATH/05_aDNA/genome_HC_allpaths41687_v2.5.fasta"
 
 conda activate biotools
 cd ${dat}
