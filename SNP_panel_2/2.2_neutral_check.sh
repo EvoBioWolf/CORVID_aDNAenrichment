@@ -6,7 +6,7 @@
 #SBATCH --partition=biohpc_gen_normal
 #SBATCH --cpus-per-task=2
 #SBATCH --time=1-00:00:00
-#SBATCH -o /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_2/slurms/slurm-%j-%x.out
+#SBATCH -o PATH/01_probes/snp_panel_2/slurms/slurm-%j-%x.out
 #SBATCH --mem-per-cpu=4763mb
 
 # sbatch 2.2_neutral_check.sh 9pop_overlapped_filtered_norepeats_AMcrow_biallele setadd03 outgroup_ascertained 9pop 8pop_noamcrow outgroup_ascertained4
@@ -17,11 +17,11 @@ module load vcftools/0.1.14-gcc8
 module load bcftools
 #picard.jar=2.25.7
 
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_2"
-neu="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/neutral"
-new="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/04_fresh2"
-ref="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/04_fresh2/05.1_recal/overlap/134inds_overlapped_filtered_norepeats.vcf.gz"
-hwe="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/04_fresh2/05.1_recal/overlap/134inds_overlapped_filtered_norepeats_cnx3_hwedis.pos"
+dat="PATH/01_probes/snp_panel_2"
+neu="PATH/01_probes/neutral"
+new="PATH/04_fresh2"
+ref="PATH/04_fresh2/05.1_recal/overlap/134inds_overlapped_filtered_norepeats.vcf.gz"
+hwe="PATH/04_fresh2/05.1_recal/overlap/134inds_overlapped_filtered_norepeats_cnx3_hwedis.pos"
 
 echo $(date)
 STARTTIME=$(date +%s)
@@ -29,7 +29,7 @@ STARTTIME=$(date +%s)
 cd ${dat}/$6
 
 #check overlap with previous design
-awk 'NR==FNR{c[$1, $2]++;next} !($1, $2) in c' /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_summary/05_final/snp_panel_104k_final.pos neuall_$3.pos > neuall_$3_nooverlap.txt
+awk 'NR==FNR{c[$1, $2]++;next} !($1, $2) in c' PATH/01_probes/snp_panel_summary/05_final/snp_panel_104k_final.pos neuall_$3.pos > neuall_$3_nooverlap.txt
 
 #check overlap with selected IRQ SNPs
 awk 'NR==FNR{c[$1, $2]++;next} !($1, $2) in c' ${dat}/IRQ_neu/${2}/${2}_biallelic_pos.txt neuall_${3}_nooverlap.txt > neuall_${3}_nooverlap_final.txt
