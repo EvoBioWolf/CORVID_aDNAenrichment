@@ -12,7 +12,7 @@ library(patchwork)
 library(ggrepel)
 
 #setwd("/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/00_baitscomparison") 
-setwd("~/Dropbox/CORVID_baits/Analyses") 
+setwd("~/CORVID_baits/Analyses") 
 dat <- read.csv("baitscomparison23.csv",header=TRUE, sep=",") %>%
   mutate(All_mapped_reads_to_original_panel = ifelse(Method == "myBaits", All_mapped_reads_to_104k_121bp, All_mapped_reads_to_232k_80bp)) %>%
   mutate(Nr_comparable_mapped_reads = Nr_mapped_reads - All_non_comparable_mapped_reads) %>%
