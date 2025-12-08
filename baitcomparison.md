@@ -18,16 +18,9 @@ Run `1.0.0_eagerTE.sh`
 ```
 #!/bin/bash -l
 #SBATCH -J eager_TE
-#SBATCH --get-user-env
-#SBATCH --mail-user=gwee@biologie.uni-muenchen.de
-#SBATCH --clusters=biohpc_gen
-#SBATCH --partition=biohpc_gen_production
-#SBATCH --cpus-per-task=8
-#SBATCH --time=14-00:00:00
-#SBATCH -o /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/slurms/slurm-%j-%x.out
 
-# sbatch 1.0.0_eagerTE.sh 00_eager_twist /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/04_fresh2/genome_HC_allpaths41687_v2.5_chrW.fasta acrow_eager_list_twist
-# sbatch 1.0.0_eagerTE.sh 00_eager_mybaits /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/04_fresh2/genome_HC_allpaths41687_v2.5_chrW.fasta acrow_eager_list_mybaits
+# sbatch 1.0.0_eagerTE.sh 00_eager_twist PATH/04_fresh2/genome_HC_allpaths41687_v2.5_chrW.fasta acrow_eager_list_twist
+# sbatch 1.0.0_eagerTE.sh 00_eager_mybaits PATH/04_fresh2/genome_HC_allpaths41687_v2.5_chrW.fasta acrow_eager_list_mybaits
 
 echo $(date)
 STARTTIME=$(date +%s)
@@ -36,16 +29,16 @@ module load charliecloud/0.30
 module load nextflow
 conda activate biotools
 
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA"
+dat="PATH/05_aDNA"
 
 cd ${dat}
 mkdir ${1}
 cd $1
 
-nextflow run nf-core/eager -r 2.4.7 -profile conda --input /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/${3}.tsv --fasta ${2} \
--c /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/base_modified2.config \
---snpcapture_bed /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/probes_232015.bed \
---clip_adapters_list /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/adapterlist.txt
+nextflow run nf-core/eager -r 2.4.7 -profile conda --input PATH/05_aDNA/${3}.tsv --fasta ${2} \
+-c PATH/05_aDNA/base_modified2.config \
+--snpcapture_bed PATH/05_aDNA/probes_232015.bed \
+--clip_adapters_list PATH/05_aDNA/adapterlist.txt
 
 ENDTIME=$(date +%s)
 echo $(date)
@@ -76,15 +69,15 @@ Run `1.0.1_mapTE.sh` Seeding is disabled to [optimized mapped reads](https://www
 
 ```
 # cd adapterremoval/output
-# for i in $(ls *.fq.gz | awk -v FS="_" '{print $1"_"$2}'); do sbatch /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/1.0.1_mapTE.sh $i 00_eager_twist adapterremoval/output; done
-# for i in $(ls *.fq.gz | awk -v FS="_" '{print $2"_"$3}'); do sbatch /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/1.0.1_mapTE.sh $i 00_eager_mybaits adapterremoval/output; done
+# for i in $(ls *.fq.gz | awk -v FS="_" '{print $1"_"$2}'); do sbatch PATH/05_aDNA/1.0.1_mapTE.sh $i 00_eager_twist adapterremoval/output; done
+# for i in $(ls *.fq.gz | awk -v FS="_" '{print $2"_"$3}'); do sbatch PATH/05_aDNA/1.0.1_mapTE.sh $i 00_eager_mybaits adapterremoval/output; done
 
 echo $(date)
 STARTTIME=$(date +%s)
 
 conda activate biotools
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA"
-ref="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/genome_HC_allpaths41687_v2.5.fasta"
+dat="PATH/05_aDNA"
+ref="PATH/05_aDNA/genome_HC_allpaths41687_v2.5.fasta"
 
 cd ${dat}
 cd ${2}/results
@@ -126,11 +119,11 @@ I ran this for 5 sets of probe combination for myBaits and Twist spaarately: (i)
 ```
 # for i in mybaits twist
 # do
-# sbatch 1.0.5_eagerTEbam.sh 00_eager_${i} /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/genome_HC_allpaths41687_v2.5.fasta /dss/dsslegfs01/pr53da/pr53da-dss-0018/#projects/2020__ancientDNA/05_aDNA/acrow_eager_list_${i}_bam.tsv probes_232015_SNPsite
-# sbatch 1.0.5_eagerTEbam.sh 00_eager_${i} /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/genome_HC_allpaths41687_v2.5.fasta /dss/dsslegfs01/pr53da/pr53da-dss-0018/#projects/2020__ancientDNA/05_aDNA/acrow_eager_list_${i}_bam.tsv probes_104k_80bp
-# sbatch 1.0.5_eagerTEbam.sh 00_eager_${i} /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/genome_HC_allpaths41687_v2.5.fasta /dss/dsslegfs01/pr53da/pr53da-dss-0018/#projects/2020__ancientDNA/05_aDNA/acrow_eager_list_${i}_bam.tsv probes_104k_SNPsite
-# sbatch 1.0.5_eagerTEbam.sh 00_eager_${i} /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/genome_HC_allpaths41687_v2.5.fasta /dss/dsslegfs01/pr53da/pr53da-dss-0018/#projects/2020__ancientDNA/05_aDNA/acrow_eager_list_${i}_bam.tsv probes_232015
-# sbatch 1.0.5_eagerTEbam.sh 00_eager_${i} /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/genome_HC_allpaths41687_v2.5.fasta /dss/dsslegfs01/pr53da/pr53da-dss-0018/#projects/2020__ancientDNA/05_aDNA/acrow_eager_list_${i}_bam.tsv probes_104k
+# sbatch 1.0.5_eagerTEbam.sh 00_eager_${i} PATH/05_aDNA/genome_HC_allpaths41687_v2.5.fasta PATH/05_aDNA/acrow_eager_list_${i}_bam.tsv probes_232015_SNPsite
+# sbatch 1.0.5_eagerTEbam.sh 00_eager_${i} PATH/05_aDNA/genome_HC_allpaths41687_v2.5.fasta PATH/05_aDNA/acrow_eager_list_${i}_bam.tsv probes_104k_80bp
+# sbatch 1.0.5_eagerTEbam.sh 00_eager_${i} PATH/05_aDNA/genome_HC_allpaths41687_v2.5.fasta PATH/05_aDNA/acrow_eager_list_${i}_bam.tsv probes_104k_SNPsite
+# sbatch 1.0.5_eagerTEbam.sh 00_eager_${i} PATH/05_aDNA/genome_HC_allpaths41687_v2.5.fasta PATH/05_aDNA/acrow_eager_list_${i}_bam.tsv probes_232015
+# sbatch 1.0.5_eagerTEbam.sh 00_eager_${i} PATH/05_aDNA/genome_HC_allpaths41687_v2.5.fasta PATH/05_aDNA/acrow_eager_list_${i}_bam.tsv probes_104k
 # done
 
 echo $(date)
@@ -139,7 +132,7 @@ STARTTIME=$(date +%s)
 module load nextflow
 conda activate biotools
 
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA"
+dat="PATH/05_aDNA"
 
 cd ${dat}
 mkdir ${1}
@@ -148,8 +141,8 @@ cd $1
 #with snpsite bed files and trimmed bam
 unset DISPLAY
 nextflow run nf-core/eager -profile conda -r 2.4.7 --input ${3} --fasta ${2} \
--c /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/base_modified2.config \
---snpcapture_bed /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/${4}.bed \
+-c PATH/05_aDNA/base_modified2.config \
+--snpcapture_bed PATH/05_aDNA/${4}.bed \
 --mtnucratio_header chrM --run_mtnucratio \
 --run_trim_bam --bamutils_clip_single_stranded_none_udg_left 5 --bamutils_clip_single_stranded_none_udg_right 5 
 ```
@@ -167,8 +160,8 @@ Run `1.1.1_angsd_baitscomparison.sh`
 echo $(date)
 STARTTIME=$(date +%s)
 
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA"
-ref="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/genome_HC_allpaths41687_v2.5.fasta"
+dat="PATH/05_aDNA"
+ref="PATH/05_aDNA/genome_HC_allpaths41687_v2.5.fasta"
 
 conda activate biotools
 cd ${dat}
