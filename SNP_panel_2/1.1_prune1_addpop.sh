@@ -1,9 +1,5 @@
 #!/bin/bash -l
 #SBATCH -J ldpru
-#SBATCH --get-user-env
-#SBATCH --mail-user=gwee@biologie.uni-muenchen.de
-#SBATCH --clusters=biohpc_gen
-#SBATCH --partition=biohpc_gen_normal
 #SBATCH --cpus-per-task=2
 #SBATCH --time=1-00:00:00
 #SBATCH -o PATH/01_probes/snp_panel_2/slurms/slurm-%j-%x.out
