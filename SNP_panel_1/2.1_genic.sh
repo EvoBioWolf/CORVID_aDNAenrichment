@@ -7,15 +7,15 @@
 module load bedtools2/2.27.1
 module load vcftools/0.1.14
 
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/genic"
-ref="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst"
-des="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/scaffold2chr"
-pan="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_summary"
+dat="PATH/01_probes/genic"
+ref="PATH/01_probes/fst"
+des="PATH/01_probes/scaffold2chr"
+pan="PATH/01_probes/snp_panel_summary"
 
 cd ${dat}
 for i in $(cat genelist_group1.txt)
 do
-grep -w $i /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/neutral/GCF_000738735.1_Hooded_Crow_genome_genomic.transformed.gff > ${i}_group1gene
+grep -w $i PATH/01_probes/neutral/GCF_000738735.1_Hooded_Crow_genome_genomic.transformed.gff > ${i}_group1gene
 done
 cat *_group1gene > group1gene.GFF
 mv *_group1gene ./group1genes
