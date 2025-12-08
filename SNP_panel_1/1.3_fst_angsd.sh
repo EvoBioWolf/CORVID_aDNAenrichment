@@ -1,10 +1,10 @@
 ### FSTs from ANGSD by Vijay for the 3 hybrid zones ###
 
 #directories
-scr="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst"
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/reference/2016_Vijay_NatComm_archive/ANGSD"
-refa="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst/angsd_fst"
-scaff="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/scaffold2chr"
+scr="PATH/01_probes/fst"
+dat="PATH/reference/2016_Vijay_NatComm_archive/ANGSD"
+refa="PATH/01_probes/fst/angsd_fst"
+scaff="PATH/01_probes/scaffold2chr"
 
 cd ${dat}
 for fname in *.fst
