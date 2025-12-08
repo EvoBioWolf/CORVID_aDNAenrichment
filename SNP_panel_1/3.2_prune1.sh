@@ -1,10 +1,6 @@
 #!/bin/bash -l
 #SBATCH -J ldpru
 #SBATCH --get-user-env
-#SBATCH --mail-user=gwee@biologie.uni-muenchen.de
-#SBATCH --clusters=biohpc_gen
-#SBATCH --partition=biohpc_gen_normal
-#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --time=3:00:00
@@ -20,8 +16,8 @@ module load plink2/1.9-beta6.10
 module load vcftools
 module load bcftools/1.9 
 
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/neutral"
-ref="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst"
+dat="PATH/01_probes/neutral"
+ref="PATH/01_probes/fst"
 
 #strict thinning 1 SNP per 10kb for 4fold, intronic and intergenic sites 
 cd $dat/neutral_perpop/summary/4fold
