@@ -1,10 +1,5 @@
 #!/bin/bash -l
 #SBATCH -J singlehit
-#SBATCH --get-user-env
-#SBATCH --mail-user=gwee@biologie.uni-muenchen.de
-#SBATCH --clusters=biohpc_gen
-#SBATCH --partition=biohpc_gen_normal
-#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=2
 #SBATCH --time=30:00
@@ -16,12 +11,12 @@
 module load user_spack
 module load vcftools
 
-ref="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst"
-ref2="/dss/dsslegfs01/pr53da/pr53da-dss-0018/assemblies/Corvus.cornix/genome/v2/v2.5"
-scaff2chr="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/scaffold2chr"
-neu="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_summary/03*"
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_summary/04_combined"
-final="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_summary/06_singlehits"
+ref="PATH/01_probes/fst"
+ref2="PATH/assemblies/Corvus.cornix/genome/v2/v2.5"
+scaff2chr="PATH/01_probes/scaffold2chr"
+neu="PATH/01_probes/snp_panel_summary/03*"
+dat="PATH/01_probes/snp_panel_summary/04_combined"
+final="PATH/01_probes/snp_panel_summary/06_singlehits"
 
 cd $dat
 cd $1_snp_panel
