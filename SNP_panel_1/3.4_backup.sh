@@ -1,10 +1,5 @@
 #!/bin/bash -l
 #SBATCH -J backup
-#SBATCH --get-user-env
-#SBATCH --mail-user=gwee@biologie.uni-muenchen.de
-#SBATCH --clusters=biohpc_gen
-#SBATCH --partition=biohpc_gen_normal
-#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=2
 #SBATCH --time=2:00:00
@@ -28,9 +23,9 @@ module load plink2/1.9-beta6.10
 module load vcftools
 module load bcftools/1.9 
 
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/neutral"
-ref="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst"
-pan="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_summary/03_neutral"
+dat="PATH/01_probes/neutral"
+ref="PATH/01_probes/fst"
+pan="PATH/01_probes/snp_panel_summary/03_neutral"
 
 cd $dat/neutral_perpop/summary
 mkdir ./intron/10kbthin/${10}
