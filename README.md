@@ -61,3 +61,6 @@ All scripts are deposited in folder [Analyses](./Analyses)
 
 Pipeline written by chyiyin Gwee [chyiyingwee@gmail.com]
 
+# Citation
+Gwee, C. Y., L. Tassoni, Z. Boev, et al. 2026. “Performance of Two Custom Probe Kits for In-Solution Enrichment of Ancient Avian DNA.” Molecular Ecology Resources 26, no. 1: e70071. https://doi.org/10.1111/1755-0998.70071.
+
