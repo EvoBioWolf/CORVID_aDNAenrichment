@@ -1,23 +1,19 @@
 #!/bin/bash -l
 #SBATCH -J mapTE
-#SBATCH --get-user-env
-#SBATCH --mail-user=gwee@biologie.uni-muenchen.de
-#SBATCH --clusters=biohpc_gen
-#SBATCH --partition=biohpc_gen_normal
 #SBATCH --cpus-per-task=8
 #SBATCH --time=2-00:00:00
-#SBATCH -o /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/slurms/slurm-%j-%x.out
+#SBATCH -o PATH/05_aDNA/slurms/slurm-%j-%x.out
 
 # cd adapterremoval/output
-# for i in $(ls *.fq.gz | awk -v FS="_" '{print $1"_"$2}'); do sbatch /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/1.0.1_mapTE.sh $i 00_eager_twist adapterremoval/output; done
-# for i in $(ls *.fq.gz | awk -v FS="_" '{print $2"_"$3}'); do sbatch /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/1.0.1_mapTE.sh $i 00_eager_mybaits adapterremoval/output; done
+# for i in $(ls *.fq.gz | awk -v FS="_" '{print $1"_"$2}'); do sbatch PATH/05_aDNA/1.0.1_mapTE.sh $i 00_eager_twist adapterremoval/output; done
+# for i in $(ls *.fq.gz | awk -v FS="_" '{print $2"_"$3}'); do sbatch PATH/05_aDNA/1.0.1_mapTE.sh $i 00_eager_mybaits adapterremoval/output; done
 
 echo $(date)
 STARTTIME=$(date +%s)
 
 conda activate biotools
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA"
-ref="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/genome_HC_allpaths41687_v2.5.fasta"
+dat="PATH/05_aDNA"
+ref="PATH/05_aDNA/genome_HC_allpaths41687_v2.5.fasta"
 
 cd ${dat}
 cd ${2}/results
