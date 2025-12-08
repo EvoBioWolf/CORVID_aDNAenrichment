@@ -1,5 +1,5 @@
 #tested on python3.9
-#dir = sys.argv[1] eg. /Users/chyiyin/Desktop/crow_project/00_probe/
+#dir = sys.argv[1] eg. ./crow_project/00_probe/
 #basename of file = sys.argv[2] eg. snp_panel_combined_184k_0based
 
 import sys
