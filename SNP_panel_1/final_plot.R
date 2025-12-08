@@ -17,11 +17,11 @@ library(chromPlot) #packageVersion 1.14 on R3.6.1 does not work well
 
 args <- commandArgs(trailingOnly = TRUE)
 
-setwd("/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_summary")
+setwd("PATH/01_probes/snp_panel_summary")
 setwd(args[5])
 
 # PCA with SNPRelate #
-poplist <- read.delim("/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst/poplist_118.txt") 
+poplist <- read.delim("PATH/01_probes/fst/poplist_118.txt") 
 colorBlindBlack8  <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 safe_colorblind_palette <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")
 
