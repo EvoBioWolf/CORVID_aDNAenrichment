@@ -10,7 +10,7 @@ library(ggvenn)
 library(VennDiagram)
 library(base)
 
-setwd("/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst/fst_summary")
+setwd("PATH/01_probes/fst/fst_summary")
 args <- commandArgs(trailingOnly = TRUE)
 
 #################### Further autosomal Fst filter ####################
@@ -63,7 +63,7 @@ write.table(auto_chrz, file="./snp_panel_summary/allhybridzones_persite_chrzinc_
 nrow(auto_chrz)
 
 #################### Outlier dxy for G01vsG02 ####################
-setwd("/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/dxy")
+setwd("PATH/01_probes/dxy")
 datG12 <- read.delim("dxypersite_G01.G02_christen.csv.nl.chr_autosomes_only.txt", header=TRUE, sep="\t")
 datG12[is.na(datG12)] <- 0
 datG12[datG12<0] <- 0
@@ -74,12 +74,12 @@ datG12_99.95$LocusName <- paste(datG12_99.95$scaffold,datG12_99.95$mid,sep=":")
 nrow(datG12_99.95)       
 q <- datG12_99.95[c(2,3,9,10,11,12)]
 colnames(q) <- c("CHROM", "Pos", "Dxy", "Fst", "Scaffold", "LocusName")
-write.table(q, file="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_summary/G01_G02_persite_dxy99.95.txt"), sep="\t", row.names=FALSE, col.names=TRUE, quote=FALSE)
+write.table(q, file="PATH/01_probes/snp_panel_summary/G01_G02_persite_dxy99.95.txt"), sep="\t", row.names=FALSE, col.names=TRUE, quote=FALSE)
 
 #################### all_chrz_fst_dxy99.95_knief_strict ####################
-setwd("/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_summary)
+setwd("PATH/01_probes/snp_panel_summary)
 
-kniefprobes <- read.delim("/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/goldengate_snps/data_TableS1.txt", header=TRUE, sep="\t")
+kniefprobes <- read.delim("PATH/01_probes/goldengate_snps/data_TableS1.txt", header=TRUE, sep="\t")
 fstkniefchrzdxy <- list(fst99.9=as.character(allhz$LocusName), chrz=as.character(chrz$LocusName), dxy99.95=as.character(dxy99.95$LocusName), Kniefprobes=as.character(kniefprobes$LocusName))
 
 pdf("all_chrz_fst_dxy99.95_knief_strict.pdf")
