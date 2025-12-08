@@ -1,12 +1,7 @@
 #!/bin/bash -l
 #SBATCH -J neutral
-#SBATCH --get-user-env
-#SBATCH --mail-user=gwee@biologie.uni-muenchen.de
-#SBATCH --clusters=biohpc_gen
-#SBATCH --partition=biohpc_gen_normal
-#SBATCH --cpus-per-task=4
 #SBATCH --time=1-00:00:00
-#SBATCH -o /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_2/slurms/slurm-%j-%x.out
+#SBATCH -o PATH/01_probes/snp_panel_2/slurms/slurm-%j-%x.out
 #SBATCH --mem-per-cpu=4763mb
 
 # sbatch 2.1_neutral_outgroup.sh 9pop_overlapped_filtered_norepeats_AMcrow_biallele 8pop_noamcrow outgroup_ascertained4
@@ -16,10 +11,10 @@ conda activate biotools
 module load vcftools/0.1.14-gcc8
 #picard.jar=2.25.7
 
-ref="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/04_fresh2/genome_HC_allpaths41687_v2.5_chrW.fasta"
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_2"
-neu="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/neutral"
-frh="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/04_fresh2/06_results/neutral"
+ref="PATH/04_fresh2/genome_HC_allpaths41687_v2.5_chrW.fasta"
+dat="PATH/01_probes/snp_panel_2"
+neu="PATH/01_probes/neutral"
+frh="PATH/04_fresh2/06_results/neutral"
 
 echo $(date)
 STARTTIME=$(date +%s)
@@ -38,7 +33,7 @@ rm $2.vcf.gz
 mv $2_edited.vcf.gz $2.vcf.gz
 
 #sort 
-java -Xmx20g -Djava.io.tmpdir=$dat -jar /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/04_fresh2/picard.jar SortVcf TMP_DIR=$dat \
+java -Xmx20g -Djava.io.tmpdir=$dat -jar PATH/04_fresh2/picard.jar SortVcf TMP_DIR=$dat \
       MAX_RECORDS_IN_RAM=10000 \
       I=$2.vcf.gz \
       O=$2_sorted.vcf
