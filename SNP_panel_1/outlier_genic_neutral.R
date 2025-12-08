@@ -9,7 +9,7 @@ library(ggplot2)
 library(VennDiagram)
 library(base)
 
-setwd("/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_summary/03_neutral")
+setwd("PATH/01_probes/snp_panel_summary/03_neutral")
 args <- commandArgs(trailingOnly = TRUE)
 
 outlier <- read.delim("../01_outlier/all_chrz_fst_dxy99.95_knief_strict_25k_biallelic_only.txt", header=TRUE, sep="")
