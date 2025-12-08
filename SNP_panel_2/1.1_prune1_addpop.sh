@@ -6,7 +6,7 @@
 #SBATCH --partition=biohpc_gen_normal
 #SBATCH --cpus-per-task=2
 #SBATCH --time=1-00:00:00
-#SBATCH -o /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_2/slurms/slurm-%j-%x.out
+#SBATCH -o PATH/01_probes/snp_panel_2/slurms/slurm-%j-%x.out
 
 ###############################################################################################
 #                                             Part1                                           # 
@@ -19,8 +19,8 @@ module load plink2
 module load vcftools
 module load bcftools
 
-dat="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_2"
-ref="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst"
+dat="PATH/01_probes/snp_panel_2"
+ref="PATH/01_probes/fst"
 
 #strict thinning 1 SNP per 10kb for intronic and intergenic sites 
 
@@ -76,5 +76,5 @@ vcftools --vcf ${base}_thin1kb.recode.vcf --freq --out ${base}_thin1kb
 awk 'NR>1 {print $1, $2}' ${base}_thin1kb.frq > ${base}_thin1kb.pos
 done
 
-awk 'NR==FNR{c[$1, $2]++;next} !($1, $2) in c' /dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_summary/03_neutral/set6up_biallelic_pos.txt cnx6_thin1kb.pos > cnx6_thin1kb_nooverlap_pos.txt
+awk 'NR==FNR{c[$1, $2]++;next} !($1, $2) in c' PATH/01_probes/snp_panel_summary/03_neutral/set6up_biallelic_pos.txt cnx6_thin1kb.pos > cnx6_thin1kb_nooverlap_pos.txt
 
