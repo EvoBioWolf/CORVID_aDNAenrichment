@@ -19,7 +19,7 @@ cat(chrtype)
 for (filename in args[1:3]) 
 {
 cat(filename)
-setwd("/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst/fst_summary")
+setwd("PATH/01_probes/fst/fst_summary")
 datc <- read.delim(file=paste("fst_christen",filename,chrtype,"only.txt",sep="_"), header=TRUE, sep="\t")
 fstc <- datc$WEIR_AND_COCKERHAM_FST
 nrow(na.omit(datc))
