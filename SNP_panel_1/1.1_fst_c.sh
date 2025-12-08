@@ -3,9 +3,9 @@
 module load vcftools
 
 #directories
-scr="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst"
-refc="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/fst/christen_vcf"
-scaff="/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/scaffold2chr"
+scr="PATH/01_probes/fst"
+refc="PATH/01_probes/fst/christen_vcf"
+scaff="PATH/01_probes/scaffold2chr"
 
 cd ${refc}
 #hybrid zone: cornix_P+S vs corone_D
