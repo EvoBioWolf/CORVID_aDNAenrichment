@@ -6,7 +6,7 @@ library(ggplot2)
 library(VennDiagram)
 library(base)
 
-setwd("/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/01_probes/snp_panel_summary")
+setwd("PATH/01_probes/snp_panel_summary")
 
 dxy99.95 <- read.delim("./01_outlier/G01_G02_persite_dxy99.95.txt", header=TRUE, sep="")
 fst99.9filtered <- read.delim("./01_outlier/allhybridzones_persite_chrzinc_fst99.9_filtered.txt", header=TRUE, sep="")
