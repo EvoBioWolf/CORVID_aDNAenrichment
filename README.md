@@ -41,9 +41,9 @@ Final fasta bait files: `./01_probes/snp_panel_1/06_post_arbor_filter/60bp/` inc
 ### SNP Panel 2: additional neutral SNPs
 More neutral SNPs are included in this panel using two approaches: (i) the same as SNP Panel 1 with one extra discovery population (SNPs per discovery population) and (ii) outgroup ascertainment. Scripts are deposited [here](./SNP_panel_2/).
 
-1. 8K neutral SNPs of the IRQ population (setadd03) using the same approach as SNP panel 1. Note that cor3 (Franch) samples are not added to avoid over-representation of the west-central populution. Path to output: `./SNP_panel_2/setadd03_biallelic_pos_nooverlap_hwe.txt`
+1. 8K neutral SNPs of the IRQ population (setadd03) using the same approach as SNP panel 1. Note that cor3 (Franch) samples are not added to avoid over-representation of the west-central populution. Path to output: `./SNP_panel_2/final_snp_panel/setadd03_biallelic_pos_nooverlap_hwe.txt`
 
-2. 72K neutral SNPs using outgroup ascertainment approach with all 8 discovery populations. The idea of outgroup ascertainment is to avoid bias in any populations, such that only sites which are heterozygous in American crow and any populations of cor1, cnx6 and ori3 are retained. Ultimately, 72K transversion sites are retained for this panel of outgroup-ascertained SNPs Path to output: `./SNP_panel_2/neuall_outgroup_ascertained_nooverlap_final_TV_hwe.txt`.
+2. 72K neutral SNPs using outgroup ascertainment approach with all 8 discovery populations. The idea of outgroup ascertainment is to avoid bias in any populations, such that only sites which are heterozygous in American crow and any populations of cor1, cnx6 and ori3 are retained. Ultimately, 72K transversion sites are retained for this panel of outgroup-ascertained SNPs Path to output: `./SNP_panel_2/final_snp_panel/neuall_outgroup_ascertained_nooverlap_final_TV_hwe.txt`.
 
 ### Twist_combined_panel: 232K SNP panel
 SNP Panel 1 + SNP Panel 2 + 49K [additional neutral transversion SNPs](./Twist_combined_panel/all_neutral_backup_TV_10kbpruned_0based_final.txt).
