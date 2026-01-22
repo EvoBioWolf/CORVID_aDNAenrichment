@@ -36,12 +36,8 @@ java -jar ${dat}/picard.jar CollectGcBiasMetrics \
     VALIDATION_STRINGENCY=LENIENT 
 done
 
-#gc_at_dropout.py
-# samtools depth -a -b ${dat}/probes_104k_SNPsite.bed $(echo *.trimmed.104k80bp.bam) > ${dat}/00_baitscomparison/coverage_104k_${4}.txt
-
-# conda activate py3.8
-# cd ${dat}/00_baitscomparison/gc
-# gc_at_dropout.py
+# to get GC_AT_dropout_summary.txt run gc_stats.py (compile results from *summary_metrics.txt)
+# to get GC_coverage_summary_mybaits.txt & GC_coverage_summary_twist.txt run gc_stats.py also (compile results from *gc_bias_metrics.txt)
 
 ENDTIME=$(date +%s)
 echo $(date)
