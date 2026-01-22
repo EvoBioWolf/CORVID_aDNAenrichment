@@ -147,7 +147,40 @@ nextflow run nf-core/eager -profile conda -r 2.4.7 --input ${3} --fasta ${2} \
 --run_trim_bam --bamutils_clip_single_stranded_none_udg_left 5 --bamutils_clip_single_stranded_none_udg_right 5 
 ```
 ---
+Run `1.0.6_baitsgc.sh` to generate stats for GC dropout
 
+```
+# sbatch 1.0.2_gc.sh 00_eager_mybaits 104K_80bp_panel probes_104k_80bp mybaits
+# sbatch 1.0.2_gc.sh 00_eager_twist 104K_80bp_panel probes_104k_80bp twist
+
+echo $(date)
+STARTTIME=$(date +%s)
+
+conda activate biotools
+dat="PATH/05_aDNA"
+ref="PATH/05_aDNA/genome_HC_allpaths41687_v2.5.fasta"
+
+cd $dat
+cd ${1}/results/${2}/trimmed_bam
+
+for i in *.trimmed.bam
+do
+base=${i%.trimmed.bam*}
+samtools view -@ 4 -bF 4 -L ${dat}/${3}.bed -b ${base}.trimmed.bam > ${base}.trimmed.104k80bp.bam
+samtools index -@ 4 ${base}.trimmed.104k80bp.bam
+java -jar ${dat}/picard.jar CollectGcBiasMetrics \
+    I=${base}.trimmed.104k80bp.bam \
+    O=${dat}/00_baitscomparison/gc/${base}_gc_bias_metrics.txt \
+    CHART=${dat}/00_baitscomparison/gc/${base}_gc_bias_chart.pdf \
+    S=${dat}/00_baitscomparison/gc/${base}_summary_metrics.txt \
+    R=${ref} \
+    SCAN_WINDOW_SIZE=80 \
+    VALIDATION_STRINGENCY=LENIENT `
+done
+```
+Then run `gc_stats.py` to compile the output and generate a summary file each for: `GC_AT_dropout_summary.txt`, `GC_coverage_summary_mybaits.txt` and `GC_coverage_summary_twist.txt`
+
+---
 ## Variant calling
 
 Run `1.1.1_angsd_baitscomparison.sh`
