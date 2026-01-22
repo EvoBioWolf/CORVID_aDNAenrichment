@@ -11,8 +11,8 @@ library(ggsignif)
 library(patchwork)
 library(ggrepel)
 
-#setwd("/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2020__ancientDNA/05_aDNA/00_baitscomparison") 
-setwd("~/CORVID_baits/Analyses") 
+#"pathtolongtermstorage"/2026/2026__Gwee_MolEcolRes/dropbox
+setwd("~/Analyses") 
 dat <- read.csv("baitscomparison23.csv",header=TRUE, sep=",") %>%
   mutate(All_mapped_reads_to_original_panel = ifelse(Method == "myBaits", All_mapped_reads_to_104k_121bp, All_mapped_reads_to_232k_80bp)) %>%
   mutate(Nr_comparable_mapped_reads = Nr_mapped_reads - All_non_comparable_mapped_reads) %>%
@@ -460,7 +460,7 @@ row1 / row2 + plot_annotation(tag_levels = 'A') & theme(plot.margin = unit(c(1, 
 library(purrr)
 mybaitscov <- read.delim("coverage_104k_mybaits.txt",header=FALSE, sep="\t") 
 twistcov <- read.delim("coverage_104k_twist.txt",header=FALSE, sep="\t") 
-popbaits <- read.table("~/Dropbox/CORVID_baits/Analyses/angsd/popbaits.txt", sep="\t", header=TRUE) 
+popbaits <- read.table("~/Analyses/angsd/popbaits.txt", sep="\t", header=TRUE) 
 popbaits_selected <- popbaits %>% 
   filter(Country %in% c("PL","B")) %>%
   filter(Samples != "DVT016" & Samples != "DVT022" & Samples != "KZR002")
@@ -498,6 +498,8 @@ for (type in c("mybaitscov", "twistcov")) {
 
 # Figure 4: Enrichment across varying GC bins ----------------------------------------------------------------------------
 # Figure 4a normalized coverage across GC content ------------------------------------------------------------------------
+#"pathtolongtermstorage"/2026/2026__Gwee_MolEcolRes/dropbox
+setwd("~/Analyses") 
 mybaitsgc <- read.delim("./gc/GC_coverage_summary_mybaits.txt",header=TRUE, sep="\t") 
 twistgc <- read.delim("./gc/GC_coverage_summary_twist.txt",header=TRUE, sep="\t") 
 names(mybaitsgc) <- gsub("_mybaits", "", names(mybaitsgc))
@@ -580,7 +582,9 @@ deam <- ggplot(data=dat1,aes(x=Sample,y=X5_Prime_C.T_1st_base_on.target_104k_80b
 ###### the filter for snpcalling on angsd is -minMapQ 20 -minQ 20 and also dp>=3 for geno calling ------------------------------
 # (B) SNPs are counted as present as long as there is genotype info, which can be homozygous or heterozygous --------------
 # (C) Using shotgun as the baseline, as long as one of the two alleles overlap with shotgun, the site is a match ----------
-setwd("/Users/chyiyin/Dropbox/CORVID_baits/Analyses/angsd") 
+#"pathtolongtermstorage"/2026/2026__Gwee_MolEcolRes/dropbox
+setwd("~/Analyses") 
+setwd("~/angsd") 
 mybaitsgeno <- read.table(gzfile("mybaits_104kpanel_geno_maxmis_q20_dp3.geno.gz"), sep = "\t", header=FALSE) #104K with Ns
 twistgeno <- read.table(gzfile("twist_104kpanel_geno_maxmis_q20_dp3.geno.gz"), sep = "\t", header=FALSE) #104K with Ns
 shotgungeno <- read.table(gzfile("shotgun_noudg_104kpanel_geno_maxmis_q20_dp3.geno.gz"), sep = "\t", header=FALSE) #104K with Ns
